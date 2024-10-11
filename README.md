@@ -15,19 +15,20 @@ Welcome to **AnymeX**, your ultimate destination for a seamless anime and manga 
 ## 📱 **Screenshots**
 
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview1.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview2.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview3.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview4.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview5.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview6.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview7.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview8.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview9.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview10.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview11.jpg" width="200" style="margin: 20px;" />
-    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview12.jpg" width="200" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview1.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview2.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview3.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview4.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview5.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview6.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview7.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview8.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview9.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview10.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview11.jpg" width="45%" style="margin: 20px;" />
+    <img src="https://github.com/RyanYuuki/AnymeX/blob/main/github_assets/preview12.jpg" width="45%" style="margin: 20px;" />
 </div>
+
 
 
 
