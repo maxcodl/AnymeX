@@ -1,4 +1,9 @@
+import 'dart:developer';
+
+import 'package:aurora/components/anilistCarousels/mappingMethod.dart';
 import 'package:aurora/components/common/custom_tile.dart';
+import 'package:aurora/database/scraper/mangakakalot/scraper_all.dart';
+import 'package:aurora/database/scraper/scrape_episode_src.dart';
 import 'package:aurora/pages/user/settings/settings_about.dart';
 import 'package:aurora/pages/user/settings/settings_layout.dart';
 import 'package:aurora/pages/user/settings/settings_player.dart';
@@ -42,8 +47,10 @@ class SettingsPage extends StatelessWidget {
             title: 'Sources',
             description: 'Switch Sources for Animes and Manga',
             onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const SourcesSettingPage()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SourcesSettingPage()));
             },
           ),
           CustomTile(
@@ -60,8 +67,10 @@ class SettingsPage extends StatelessWidget {
             title: 'Player (Soon)',
             description: 'Change Video Player Settings',
             onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const VideoPlayerSettings()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const VideoPlayerSettings()));
             },
           ),
           CustomTile(
@@ -86,6 +95,14 @@ class SettingsPage extends StatelessWidget {
             onTap: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const AboutPage()));
+            },
+          ),
+          CustomTile(
+            icon: Iconsax.info_circle5,
+            title: 'Fetch Data',
+            description: 'Test',
+            onTap: () async {
+              // await fetchAnilistToAniwatch("21");
             },
           ),
         ],

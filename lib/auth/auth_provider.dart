@@ -1,16 +1,14 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:aurora/components/anilistCarousels/mappingMethod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_web_auth/flutter_web_auth.dart';
-import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
 class AniListProvider with ChangeNotifier {
   final storage = const FlutterSecureStorage();
-  final Box _loginDataBox =
-      Hive.box('login-data'); 
   dynamic _userData = {};
   bool _isLoading = false;
 
@@ -21,12 +19,6 @@ class AniListProvider with ChangeNotifier {
     final token = await storage.read(key: 'auth_token');
     if (token != null) {
       await fetchUserProfile();
-    } else {
-      final lastSession = _loginDataBox.get('last_session');
-      if (lastSession != null) {
-        _userData = lastSession;
-        notifyListeners();
-      }
     }
   }
 
@@ -85,14 +77,16 @@ class AniListProvider with ChangeNotifier {
     notifyListeners();
 
     final token = await storage.read(key: 'auth_token');
+
     if (token == null) {
+      log('No token found');
       _isLoading = false;
       notifyListeners();
       return;
     }
 
     const query = '''
-  query {
+    query {
     Viewer {
       id
       name
@@ -102,17 +96,62 @@ class AniListProvider with ChangeNotifier {
       statistics {
         anime {
           count
-          minutesWatched
           episodesWatched
+          meanScore
+          minutesWatched
         }
         manga {
           count
           chaptersRead
+          volumesRead
+          meanScore
         }
       }
     }
   }
   ''';
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://graphql.anilist.co'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({'query': query}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _userData = data['data']['Viewer'];
+        log('User profile fetched successfully');
+      } else {
+        log('Failed to load user profile: ${response.statusCode}');
+        throw Exception('Failed to load user profile');
+      }
+    } catch (e) {
+      log('Error fetching user profile: $e');
+    }
+
+    _isLoading = false;
+    await fetchUserAnimeList();
+    await fetchUserMangaList();
+    notifyListeners();
+  }
+
+  Future<void> updateUsername(String newUsername) async {
+    final token = await storage.read(key: 'auth_token');
+    if (token == null) return;
+
+    const mutation = '''
+    mutation UpdateUser(\$username: String) {
+      UpdateUser(name: \$username) {
+        id
+        name
+      }
+    }
+    ''';
 
     final response = await http.post(
       Uri.parse('https://graphql.anilist.co'),
@@ -121,21 +160,22 @@ class AniListProvider with ChangeNotifier {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: json.encode({'query': query}),
+      body: json.encode({
+        'query': mutation,
+        'variables': {
+          'username': newUsername,
+        },
+      }),
     );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      _userData = data['data']['Viewer'];
-
-      // Save the newly fetched user data into Hive for future sessions
-      await _loginDataBox.put('last_session', _userData);
-      log('User profile fetched and saved');
+      _userData['name'] = data['data']['UpdateUser']['name'];
+      log('Username updated successfully');
     } else {
-      throw Exception('Failed to load user profile');
+      log('Failed to update username: ${response.body}');
     }
 
-    _isLoading = false;
     notifyListeners();
   }
 
@@ -151,34 +191,34 @@ class AniListProvider with ChangeNotifier {
     }
 
     const query = '''
-    query GetUserAnimeList(\$userId: Int) {
-      MediaListCollection(userId: \$userId, type: ANIME) {
-        lists {
-          name
-          entries {
-            media {
-              id
-              title {
-                romaji
-                english
-                native
-              }
-              episodes
-              format
-              genres
-              status
-              averageScore
-              coverImage {
-                large
-              }
+  query GetUserAnimeList(\$userId: Int) {
+    MediaListCollection(userId: \$userId, type: ANIME) {
+      lists {
+        name
+        entries {
+          media {
+            id
+            title {
+              romaji
+              english
+              native
             }
-            progress
+            episodes
+            format
+            genres
             status
+            averageScore
+            coverImage {
+              large
+            }
           }
+          progress
+          status
         }
       }
     }
-    ''';
+  }
+  ''';
 
     try {
       if (_userData['id'] == null) {
@@ -212,9 +252,30 @@ class AniListProvider with ChangeNotifier {
             data['data']['MediaListCollection'] != null) {
           final lists =
               data['data']['MediaListCollection']['lists'] as List<dynamic>;
-          _userData['animeList'] =
+          final animeList =
               lists.expand((list) => list['entries'] as List<dynamic>).toList();
+
+          // for (var animeEntry in animeList) {
+          //   if (animeEntry['status'] == 'CURRENT') {
+          //     final anilistId = animeEntry['media']['id'];
+          //     try {
+          //       final hiAnimeId =
+          //           await fetchAnilistToAniwatch(anilistId.toString());
+          //       if (hiAnimeId != '' && hiAnimeId != null) {
+          //         animeEntry['media']['hiAnimeId'] = hiAnimeId;
+          //         log('Fetched HiAnime ID for anime with AniList ID: $anilistId -> HiAnime ID: $hiAnimeId');
+          //         log('Fetched HiAnime ');
+          //       }
+          //     } catch (e) {
+          //       log('Failed to fetch HiAnime ID for anime with AniList ID: $anilistId: $e');
+          //     }
+          //   }
+          // }
+
+          _userData['animeList'] = animeList;
           log('User anime list fetched successfully');
+          log('Fetched ${_userData['animeList'].length} anime entries');
+          log(_userData['animeList']);
         } else {
           log('Unexpected response structure: ${response.body}');
         }
@@ -307,6 +368,8 @@ class AniListProvider with ChangeNotifier {
           _userData['mangaList'] =
               lists.expand((list) => list['entries'] as List<dynamic>).toList();
           log('User manga list fetched successfully');
+          log('Fetched ${_userData['mangaList'].length} manga entries');
+          log(data['data']['MediaListCollection']['lists']);
         } else {
           log('Unexpected response structure: ${response.body}');
         }
@@ -325,7 +388,6 @@ class AniListProvider with ChangeNotifier {
   Future<void> logout(BuildContext context) async {
     await storage.delete(key: 'auth_token');
     _userData = {};
-    await _loginDataBox.delete('last_session'); // Remove session data on logout
     notifyListeners();
   }
 }

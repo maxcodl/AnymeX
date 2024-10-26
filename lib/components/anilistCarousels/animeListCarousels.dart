@@ -1,18 +1,25 @@
-import 'dart:math';
-
+// ignore_for_file: camel_case_types, use_build_context_synchronously
+import 'package:aurora/components/anilistCarousels/mappingMethod.dart';
 import 'package:aurora/components/helper/scroll_helper.dart';
-import 'package:aurora/pages/Anime/details_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:transformable_list_view/transformable_list_view.dart';
 
-class HomepageCarousel extends StatelessWidget {
+class anilistCarousel extends StatelessWidget {
   final List<dynamic>? carouselData;
   final String? title;
   final String? tag;
-  HomepageCarousel({super.key, this.title, this.carouselData, this.tag});
+  final dynamic rawData;
+  bool isManga;
+  anilistCarousel(
+      {super.key,
+      this.title,
+      this.carouselData,
+      this.tag,
+      this.rawData,
+      this.isManga = false});
 
   final ScrollDirectionHelper _scrollDirectionHelper = ScrollDirectionHelper();
 
@@ -22,6 +29,7 @@ class HomepageCarousel extends StatelessWidget {
         Hive.box('app-data').get('usingCompactCards', defaultValue: false);
     final bool usingSaikouCards =
         Hive.box('app-data').get('usingSaikouCards', defaultValue: true);
+
     if (carouselData == null || carouselData!.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -89,30 +97,26 @@ class HomepageCarousel extends StatelessWidget {
             itemExtent: MediaQuery.of(context).size.width /
                 (usingSaikouCards ? 3.3 : 2.3),
             itemBuilder: (context, index) {
-              final itemData = carouselData![index];
-              final String posterUrl = itemData['poster'] ?? '??';
-              final random = Random().nextInt(100000);
-              final tagg = '${itemData['id']}$tag$random';
-
+              final itemData = carouselData?[index]['media'];
+              final String posterUrl = itemData?['coverImage']?['large'] ??
+                  'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg';
+              final tagg = itemData.toString() + tag!;
               const String proxyUrl =
                   'https://goodproxy.goodproxy.workers.dev/fetch?url=';
               dynamic extraData =
-                  'Episode ${itemData['currentEpisode'].toString()}';
+                  '${isManga ? 'Chapter' : 'Episode'} ${rawData?[index]?['progress']?.toString() ?? '?'}';
               '1';
               return Padding(
                 padding: const EdgeInsets.only(right: 10.0),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailsPage(
-                          id: itemData['animeId'],
-                          posterUrl: proxyUrl + posterUrl,
-                          tag: tagg,
-                        ),
-                      ),
-                    );
+                    mapMalToAniwatch(
+                        context,
+                        itemData?['title']?['english'] ??
+                            itemData?['title']?['romaji'] ??
+                            '?',
+                        posterUrl,
+                        tagg);
                   },
                   child: Column(
                     children: [
@@ -240,7 +244,9 @@ class HomepageCarousel extends StatelessWidget {
                               left: 10,
                               right: 10,
                               child: Text(
-                                itemData?['animeTitle'],
+                                itemData?['title']?['english'] ??
+                                    itemData?['title']?['romaji'] ??
+                                    '?',
                                 style: TextStyle(
                                   color: Theme.of(context)
                                               .colorScheme
@@ -279,7 +285,9 @@ class HomepageCarousel extends StatelessWidget {
                                       (usingSaikouCards ? 3.3 : 2.3),
                                 ),
                                 Text(
-                                  itemData?['animeTitle'],
+                                  itemData?['title']?['english'] ??
+                                      itemData?['title']?['romaji'] ??
+                                      '?',
                                   style: TextStyle(
                                     color: Theme.of(context)
                                                 .colorScheme

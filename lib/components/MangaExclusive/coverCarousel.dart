@@ -9,17 +9,17 @@ import 'package:iconsax/iconsax.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-class Covercarousel extends StatefulWidget {
+class MangaCoverCarousel extends StatefulWidget {
   final List<dynamic>? animeData;
   final String? title;
 
-  const Covercarousel({super.key, this.animeData, this.title});
+  const MangaCoverCarousel({super.key, this.animeData, this.title});
 
   @override
-  _CovercarouselState createState() => _CovercarouselState();
+  _MangaCoverCarouselState createState() => _MangaCoverCarouselState();
 }
 
-class _CovercarouselState extends State<Covercarousel> {
+class _MangaCoverCarouselState extends State<MangaCoverCarousel> {
   int activeIndex = 0;
   final PageController _pageController = PageController();
 
@@ -41,8 +41,8 @@ class _CovercarouselState extends State<Covercarousel> {
           itemCount: widget.animeData!.length,
           itemBuilder: (context, index, realIndex) {
             final anime = widget.animeData![index];
-            final String posterUrl = anime['carouselImage'] ?? '??';
-            final tag = anime['name'] + anime['id'];
+            final String posterUrl = anime['image'] ?? '??';
+            final tag = anime?['title'] + anime?['id'];
             const String proxyUrl =
                 'https://goodproxy.goodproxy.workers.dev/fetch?url=';
 
@@ -54,7 +54,7 @@ class _CovercarouselState extends State<Covercarousel> {
                       onTap: () {
                         Navigator.pushNamed(
                           context,
-                          '/details',
+                          '/manga/details',
                           arguments: {
                             'id': anime['id'],
                             'posterUrl': proxyUrl + posterUrl,
@@ -97,14 +97,16 @@ class _CovercarouselState extends State<Covercarousel> {
                         children: [
                           Expanded(
                             child: Text(
-                              anime['name'],
+                              anime['title'],
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 20),
                           iconWithName(
                             icon: Iconsax.calendar5,
-                            name: anime['otherInfo'][2],
+                            name: anime['chapter'].toString().length > 14
+                                ? anime['chapter'].toString().substring(0, 14)
+                                : anime['chapter'].toString(),
                             isVertical: false,
                             borderRadius: BorderRadius.circular(5),
                             backgroundColor: ColorScheme.onPrimaryFixedVariant,
