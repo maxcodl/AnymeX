@@ -1,38 +1,41 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'dart:math';
-
+import 'package:aurora/utils/sources/anime/handler/sources_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:aurora/components/common/IconWithLabel.dart';
-import 'package:aurora/utils/scrapers/anime/aniwatch/scraper_search.dart';
+import 'package:provider/provider.dart';
 
-const String proxyUrl = 'https://goodproxy.goodproxy.workers.dev/fetch?url=';
+const String proxyUrl = '';
 
 class AnimeSearchModal extends StatefulWidget {
   final String initialText;
+  final Function(String mangaId) onAnimeSelected;
 
-  const AnimeSearchModal({super.key, required this.initialText});
+  const AnimeSearchModal(
+      {super.key, required this.initialText, required this.onAnimeSelected});
 
   @override
   _AnimeSearchModalState createState() => _AnimeSearchModalState();
 }
 
 class _AnimeSearchModalState extends State<AnimeSearchModal> {
-  late Future<List<dynamic>> _searchFuture;
+  late Future<dynamic> _searchFuture;
   final TextEditingController _controller = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _controller.text = widget.initialText;
-    _searchFuture = scrapeAnimeSearch(widget.initialText);
+    _searchFuture = Provider.of<SourcesHandler>(context, listen: false).fetchSearchResults(widget.initialText);
   }
 
   void _performSearch(String searchTerm) {
     setState(() {
-      _searchFuture = scrapeAnimeSearch(searchTerm);
+      _searchFuture = Provider.of<SourcesHandler>(context, listen: false)
+          .fetchSearchResults(searchTerm);
     });
   }
 
@@ -73,7 +76,7 @@ class _AnimeSearchModalState extends State<AnimeSearchModal> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<dynamic>>(
+            child: FutureBuilder<dynamic>(
               future: _searchFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -91,7 +94,12 @@ class _AnimeSearchModalState extends State<AnimeSearchModal> {
                         final anime = snapshot.data![index];
                         final random = Random().nextInt(100000);
                         final tag = '$random${anime['id']}';
-                        return searchItemList(context, anime, tag);
+                        return searchItemList(
+                          context,
+                          anime,
+                          tag,
+                          widget.onAnimeSelected, // Pass the callback
+                        );
                       },
                     ),
                   );
@@ -111,26 +119,26 @@ class _AnimeSearchModalState extends State<AnimeSearchModal> {
   }
 }
 
-void showAnimeSearchModal(BuildContext context, String initialText) {
+void showAnimeSearchModal(BuildContext context, String initialText,
+    Function(String animeId) onAnimeSelected) {
   showModalBottomSheet(
     showDragHandle: true,
     context: context,
     isScrollControlled: true,
     builder: (BuildContext context) {
-      return AnimeSearchModal(initialText: initialText);
+      return AnimeSearchModal(
+          initialText: initialText, onAnimeSelected: onAnimeSelected);
     },
   );
 }
 
-GestureDetector searchItemList(
-    BuildContext context, dynamic anime, String tag) {
+GestureDetector searchItemList(BuildContext context, dynamic anime, String tag,
+    Function(String) onAnimeSelected
+    ) {
   return GestureDetector(
     onTap: () {
-      Navigator.pushReplacementNamed(context, '/details', arguments: {
-        'id': anime['id'],
-        'posterUrl': proxyUrl + anime['poster'],
-        'tag': tag
-      });
+      onAnimeSelected(anime['id']); 
+      Navigator.pop(context); 
     },
     child: Container(
       height: 110,
@@ -178,7 +186,7 @@ GestureDetector searchItemList(
                           bottomLeft: Radius.circular(5)),
                       icon: Icons.closed_caption,
                       backgroundColor: const Color(0xFFb0e3af),
-                      name: anime['episodes']['sub']?.toString() ?? '?'),
+                      name: anime?['episodes']?['sub']?.toString() ?? '?'),
                   const SizedBox(width: 2),
                   iconWithName(
                       isVertical: false,
@@ -187,7 +195,7 @@ GestureDetector searchItemList(
                           topRight: Radius.circular(5),
                           bottomRight: Radius.circular(5)),
                       icon: Icons.mic,
-                      name: anime['episodes']['dub']?.toString() ?? '?')
+                      name: anime?['episodes']?['dub']?.toString() ?? '?')
                 ],
               )
             ],

@@ -1,6 +1,9 @@
 import 'package:aurora/components/anilistExclusive/animeListCarousels.dart';
 import 'package:aurora/components/anime/details/image_button.dart';
+import 'package:aurora/components/novel/continue_noveling.dart';
 import 'package:aurora/fallbackData/anilist_homepage_data.dart';
+import 'package:aurora/fallbackData/anilist_manga_homepage.dart';
+import 'package:aurora/pages/MyList/mylist_page.dart';
 import 'package:aurora/pages/user/anilist_pages/anime_list.dart';
 import 'package:aurora/pages/user/anilist_pages/manga_list.dart';
 import 'package:aurora/hiveData/themeData/theme_provider.dart';
@@ -8,12 +11,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_sliding_segmented_control/custom_sliding_segmented_control.dart';
 import 'package:flutter/material.dart';
 import 'package:aurora/auth/auth_provider.dart';
-import 'package:aurora/components/common/SettingsModal.dart';
+import 'package:aurora/components/common/settings_modal.dart';
 import 'package:aurora/components/common/reusable_carousel.dart';
-import 'package:aurora/components/manga/reusable_carousel.dart'
-    as MangaCarousel;
 import 'package:aurora/components/home/manga_homepage_carousel.dart';
-import 'package:aurora/fallbackData/manga_data.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/arcticons.dart';
@@ -62,14 +62,19 @@ class _HomePageState extends State<HomePage> {
         final animeList = isLoggedIn &&
                 anilistProvider.userData != null &&
                 anilistProvider.userData.containsKey('currentlyWatching')
-            ? (anilistProvider.userData['currentlyWatching'] ?? [])
+            ? (anilistProvider.userData['currentlyWatching'].reversed
+                    .toList() ??
+                [])
             : [];
         return ValueListenableBuilder(
           valueListenable: Hive.box('app-data').listenable(),
           builder: (context, Box appBox, _) {
             // final rawDataManga = anilistProvider.userData['mangaList'];
-            // final mangaList = filterData(anilistProvider.userData['mangaList']);
-            final dynamic readingMangaList = appBox.get('currently-reading');
+            final mangaList = anilistProvider.userData?['mangaList'];
+            final dynamic readingMangaList =
+                appBox.get('currently-reading')?.reversed.toList();
+            final dynamic readingNovelList =
+                appBox.get('currently-noveling')?.reversed.toList();
 
             return Scaffold(
               backgroundColor: Theme.of(context).colorScheme.surface,
@@ -214,25 +219,41 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       const SizedBox(height: 20),
-                      if (anilistProvider.userData?['data'] != null)
+                      ImageButton(
+                          width: 200,
+                          buttonText: "FAVOURITES",
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const MyList()));
+                          },
+                          backgroundImage:
+                              'https://images3.alphacoders.com/128/thumb-1920-1283303.png'),
+                      const SizedBox(height: 20),
+                      if (isLoggedIn)
                         anilistCarousel(
                           title: 'Currently Watching',
                           carouselData: animeList,
                           tag: 'currently-watching',
-                        )
-                      else
-                        loader(),
-                      // anilistCarousel(
-                      //   title: 'Currently Reading',
-                      //   carouselData: mangaList,
-                      //   tag: 'currently-reading',
-                      //   rawData: rawDataManga,
-                      //   isManga: true,
-                      // ),
-                      MangaHomepageCarousel(
+                        ),
+                      if(isLoggedIn)
+                      anilistCarousel(
                         title: 'Currently Reading',
-                        carouselData: readingMangaList,
-                        tag: 'home-page',
+                        carouselData: mangaList,
+                        tag: 'currently-reading',
+                        isManga: true,
+                      ),
+                      if (!isLoggedIn)
+                        MangaHomepageCarousel(
+                          title: 'Currently Reading',
+                          carouselData: readingMangaList,
+                          tag: 'home-page',
+                        ),
+                      ContinueNoveling(
+                        carouselData: readingNovelList,
+                        title: 'Continue Novelling',
+                        tag: 'Novel-Carousel',
                       ),
                       ReusableCarousel(
                         title: 'Recommended',
@@ -241,11 +262,13 @@ class _HomePageState extends State<HomePage> {
                         tag: 'home-page-recommended',
                         secondary: true,
                       ),
-                      MangaCarousel.ReusableCarousel(
+                      ReusableCarousel(
                         title: 'Recommended',
-                        carouselData: mangaData['mangaList'],
+                        carouselData: fallbackMangaData['data']['popularMangas']
+                            ['media'],
                         tag: 'home-page-recommended',
                         secondary: true,
+                        isManga: true,
                       ),
                     ],
                   ),

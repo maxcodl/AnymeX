@@ -1,20 +1,40 @@
-import 'dart:developer';
+import 'dart:io';
 
-import 'package:aurora/components/anilistCarousels/mappingMethod.dart';
 import 'package:aurora/components/common/custom_tile.dart';
-import 'package:aurora/database/scraper/mangakakalot/scraper_all.dart';
-import 'package:aurora/database/scraper/scrape_episode_src.dart';
 import 'package:aurora/pages/user/settings/settings_about.dart';
+import 'package:aurora/pages/user/settings/settings_download.dart';
 import 'package:aurora/pages/user/settings/settings_layout.dart';
 import 'package:aurora/pages/user/settings/settings_player.dart';
-import 'package:aurora/pages/user/settings/settings_sources.dart';
 import 'package:aurora/pages/user/settings/settings_theme.dart';
+import 'package:aurora/utils/downloader/downloader.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:iconly/iconly.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+
+  Route _createSlideRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        final tween = Tween(begin: begin, end: end)
+            .chain(CurveTween(curve: Curves.easeInOut));
+        final offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,34 +63,29 @@ class SettingsPage extends StatelessWidget {
           ),
           const SizedBox(height: 30),
           CustomTile(
-            icon: Icons.source,
-            title: 'Sources',
-            description: 'Switch Sources for Animes and Manga',
+            icon: HugeIcons.strokeRoundedPaintBrush02,
+            title: 'UI',
+            description: 'Play Around with UI Tweaks',
             onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const SourcesSettingPage()));
+              Navigator.push(context, _createSlideRoute(const LayoutPage()));
             },
           ),
           CustomTile(
-            icon: Icons.stairs_rounded,
-            title: 'Layout',
-            description: 'Change the app${"'"}s layout entirely',
+            icon: Icons.source,
+            title: 'Downloads',
+            description: 'Tweak Download Settings',
             onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const LayoutPage()));
+              Navigator.push(
+                  context, _createSlideRoute(const SettingsDownload()));
             },
           ),
           CustomTile(
             icon: Iconsax.play5,
-            title: 'Player (Soon)',
+            title: 'Player',
             description: 'Change Video Player Settings',
             onTap: () {
               Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const VideoPlayerSettings()));
+                  context, _createSlideRoute(const VideoPlayerSettings()));
             },
           ),
           CustomTile(
@@ -78,8 +93,7 @@ class SettingsPage extends StatelessWidget {
             title: 'Theme',
             description: 'Change the app theme',
             onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const ThemePage()));
+              Navigator.push(context, _createSlideRoute(const ThemePage()));
             },
           ),
           CustomTile(
@@ -89,22 +103,34 @@ class SettingsPage extends StatelessWidget {
             onTap: () {},
           ),
           CustomTile(
-            icon: Iconsax.info_circle5,
-            title: 'About',
-            description: 'About this app',
-            onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const AboutPage()));
+            icon: Iconsax.trash,
+            title: 'Clear Cache',
+            description: 'This will remove everything (Fav List)',
+            onTap: () async {
+              await Hive.box('app-data').clear();
             },
           ),
           CustomTile(
             icon: Iconsax.info_circle5,
-            title: 'Fetch Data',
-            description: 'Test',
-            onTap: () async {
-              // await fetchAnilistToAniwatch("21");
+            title: 'About',
+            description: 'About this app',
+            onTap: () {
+              Navigator.push(context, _createSlideRoute( AboutPage()));
             },
           ),
+          // CustomTile(
+          //   icon: Iconsax.info_circle5,
+          //   title: 'Fetch Data',
+          //   description: 'Test FUNC',
+          //   onTap: () async {
+          //     Downloader downloader = Downloader();
+          //     await downloader.download(
+          //         'https://www048.vipanicdn.net/streamhls/c4c226c3ad7a481dc8e8a88e75804fe5/ep.1.1677836526.1080.m3u8',
+          //         'Episode 1',
+          //         'Blue Lock',
+          //         parallelDownloads: 100);
+          //   },
+          // ),
         ],
       ),
     );

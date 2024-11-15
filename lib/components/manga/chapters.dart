@@ -1,95 +1,45 @@
+import 'package:aurora/pages/Manga/read_page.dart';
 import 'package:flutter/material.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:text_scroll/text_scroll.dart';
 
-class ChapterList extends StatefulWidget {
+class ChapterList extends StatelessWidget {
   final dynamic chaptersData;
   final String? id;
   final String? posterUrl;
+  final String anilistId;
+  final String currentSource;
+  final dynamic rawChapters;
+  final String description;
   const ChapterList(
       {super.key,
       this.chaptersData,
       required this.id,
-      required this.posterUrl});
-
-  @override
-  _ChapterListState createState() => _ChapterListState();
-}
-
-class _ChapterListState extends State<ChapterList> {
-  final TextEditingController _searchController = TextEditingController();
-  List<dynamic> _filteredChapters = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredChapters = widget.chaptersData;
-    _searchController.addListener(_filterChapters);
-  }
-
-  void _filterChapters() {
-    setState(() {
-      _filteredChapters = widget.chaptersData
-          .where((chapter) => chapter['name']
-              .toString()
-              .toLowerCase()
-              .contains(_searchController.text.toLowerCase()))
-          .toList();
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+      required this.posterUrl,
+      required this.currentSource,
+      required this.anilistId,
+      required this.rawChapters,
+      required this.description});
 
   @override
   Widget build(BuildContext context) {
+    if (chaptersData == null) {
+      return const SizedBox(
+        height: 300,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return SizedBox(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Chapters',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontFamily: "Poppins-Bold",
-                ),
-                textAlign: TextAlign.left,
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    fillColor:
-                        Theme.of(context).colorScheme.surfaceContainerHigh,
-                    filled: true,
-                    hintText: 'Search Chapter...',
-                    prefixIcon: const Icon(Iconsax.search_normal),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 30),
           SizedBox(
             height: 400,
             child: ListView.builder(
-              itemCount: _filteredChapters.length,
+              itemCount: chaptersData.length,
               itemBuilder: (context, index) {
-                final manga = _filteredChapters[index];
+                final manga = chaptersData[index];
                 return Container(
                   margin: const EdgeInsets.only(bottom: 20),
                   padding:
@@ -152,22 +102,26 @@ class _ChapterListState extends State<ChapterList> {
                           const SizedBox(width: 15),
                           ElevatedButton(
                             onPressed: () {
-                              Navigator.pushNamed(context, '/manga/read',
-                                  arguments: {
-                                    "id": manga['path']
-                                        .toString()
-                                        .split('/')
-                                        .last,
-                                    "mangaId": widget.id,
-                                    'posterUrl': widget.posterUrl
-                                  });
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ReadingPage(
+                                            id: manga['id'],
+                                            mangaId: id!,
+                                            posterUrl: posterUrl!,
+                                            currentSource: currentSource,
+                                            anilistId: anilistId,
+                                            chapterList: rawChapters,
+                                            description: description,
+                                          )));
                             },
                             style: ElevatedButton.styleFrom(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 20),
                               backgroundColor: Theme.of(context)
                                   .colorScheme
-                                  .onPrimaryFixedVariant,
+                                  .secondaryContainer,
+                              elevation: 10,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),

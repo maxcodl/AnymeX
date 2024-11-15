@@ -1,6 +1,10 @@
+import 'package:aurora/components/common/custom_tile.dart';
 import 'package:aurora/components/common/switch_tile_stateless.dart';
+import 'package:aurora/pages/user/settings/layout_subs/resize_tabbar.dart';
+import 'package:aurora/pages/user/settings/modals/tile_with_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:iconly/iconly.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -18,6 +22,11 @@ class _LayoutPageState extends State<LayoutPage> {
       Hive.box('app-data').get('usingSaikouCards', defaultValue: true);
   bool usingSaikouLayout =
       Hive.box('app-data').get('usingSaikouLayout', defaultValue: false);
+  double cardRoundness =
+      Hive.box('app-data').get('cardRoundness', defaultValue: 18.0);
+  double tabBarRoundness =
+      Hive.box('app-data').get('tabBarRoundness', defaultValue: 30.0);
+  // double tabBarSize = Hive.box('app-data').get('tabBarSize', defaultValue: );
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,14 +57,14 @@ class _LayoutPageState extends State<LayoutPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Layout',
+                      'UI',
                       style:
                           TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                         onPressed: () {},
                         icon: const Icon(
-                          Icons.stairs_outlined,
+                          HugeIcons.strokeRoundedPaintBrush02,
                           size: 40,
                         )),
                   ],
@@ -96,6 +105,47 @@ class _LayoutPageState extends State<LayoutPage> {
                 Hive.box('app-data').put('usingSaikouCards', saikouCards);
               });
             },
+          ),
+          CustomTile(
+            icon: Iconsax.arrow,
+            title: 'Resize TabBar',
+            description: 'Change the TabBar Size.',
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ResizeTabbar()));
+            },
+          ),
+          TileWithSlider(
+            sliderValue: cardRoundness,
+            onChanged: (newValue) {
+              setState(() {
+                cardRoundness = newValue;
+              });
+              Hive.box('app-data').put('cardRoundness', newValue);
+            },
+            title: 'Card Roundness',
+            description: 'Changes the card roundness',
+            icon: Icons.rounded_corner_rounded,
+            max: 50.0,
+            min: 0.0,
+            divisions: 10,
+          ),
+          TileWithSlider(
+            sliderValue: tabBarRoundness,
+            onChanged: (newValue) {
+              setState(() {
+                tabBarRoundness = newValue;
+              });
+              Hive.box('app-data').put('tabBarRoundness', newValue);
+            },
+            title: 'TabBar Roundness',
+            description: 'Changes the Tab ${"Bar's"} Roundness',
+            icon: Icons.rounded_corner,
+            min: 0.0,
+            max: 50.0,
+            divisions: 10,
           ),
           const SizedBox(height: 20),
           Padding(

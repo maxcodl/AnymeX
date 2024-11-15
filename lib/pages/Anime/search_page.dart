@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:aurora/components/common/IconWithLabel.dart';
-import 'package:aurora/utils/apiHooks/anilist/search_page.dart';
+import 'package:aurora/utils/apiHooks/anilist/anime/search_page.dart';
 import 'package:aurora/pages/Anime/details_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +15,7 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-const String proxyUrl = 'https://goodproxy.goodproxy.workers.dev/fetch?url=';
+const String proxyUrl = '';
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController controller = TextEditingController();
@@ -408,7 +408,7 @@ GestureDetector searchItemCover(
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        '${anime?['episodes'] ?? '?'} Episodes',
+                        '${anime['episodes'] ?? '?'} Episodes',
                         style: TextStyle(
                             color:
                                 Theme.of(context).colorScheme.inverseSurface ==

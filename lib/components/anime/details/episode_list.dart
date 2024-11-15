@@ -1,12 +1,19 @@
+// ignore_for_file: prefer_interpolation_to_compose_strings
+
+import 'dart:ui';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class EpisodeGrid extends StatefulWidget {
   final List<dynamic> episodes;
   final int layoutIndex;
   final Function(int) onEpisodeSelected;
+  final Function(String, String) onEpisodeDownload;
   final int currentEpisode;
   final String coverImage;
   final int progress;
+  final dynamic episodeImages;
   const EpisodeGrid({
     super.key,
     required this.episodes,
@@ -15,6 +22,8 @@ class EpisodeGrid extends StatefulWidget {
     required this.onEpisodeSelected,
     required this.progress,
     required this.coverImage,
+    this.episodeImages,
+    required this.onEpisodeDownload,
   });
 
   @override
@@ -46,14 +55,18 @@ class _EpisodeGridState extends State<EpisodeGrid> {
     bool isGrid = widget.layoutIndex == 2;
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isGrid ? 5 : 1,
+        crossAxisCount: isGrid
+            ? 5
+            : widget.layoutIndex == 1
+                ? 2
+                : 1,
         mainAxisExtent: isList
-            ? 50
+            ? 90
             : isGrid
                 ? 40
-                : 120,
+                : 100,
         crossAxisSpacing: 5,
-        mainAxisSpacing: widget.layoutIndex == 0 ? 20 : 5,
+        mainAxisSpacing: widget.layoutIndex == 2 ? 5 : 10,
       ),
       padding: const EdgeInsets.symmetric(vertical: 5),
       shrinkWrap: true,
@@ -71,74 +84,176 @@ class _EpisodeGridState extends State<EpisodeGrid> {
               widget.onEpisodeSelected(episodeNumber);
             },
             child: Opacity(
-              opacity: episodeNumber < widget.progress ? 0.7 : 1,
+              opacity: (episodeNumber) <= widget.progress ? 0.7 : 1,
               child: Container(
                 height: 50,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Theme.of(context).colorScheme.onPrimaryFixedVariant
                       : Theme.of(context).colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(12), // Rounded corners
+                  borderRadius: BorderRadius.circular(12), 
                 ),
-                child: Stack(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              widget.coverImage,
-                              width: 50,
-                              height: 120,
-                              fit: BoxFit.cover,
+                    Expanded(
+                      flex: 1,
+                      child: Stack(
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: (widget.episodeImages != null &&
+                                    widget.episodeImages!.length > index
+                                ? widget.episodeImages![episodeNumber - 1]
+                                        ['image'] ??
+                                    widget.coverImage
+                                : widget.coverImage),
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) {
+                              return CachedNetworkImage(
+                                imageUrl: widget.coverImage,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              );
+                            },
+                            errorWidget: (context, error, stackTrace) {
+                              return CachedNetworkImage(
+                                imageUrl: widget.coverImage,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          ),
+                          Positioned(
+                            bottom: 10,
+                            left: 10,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(7),
+                              child: BackdropFilter(
+                                filter:
+                                    ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                                child: Container(
+                                  width: 50,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
+                                    color: Colors.black.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(7),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'EP ${episodeNumber?.toString() ?? index.toString()}',
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins-Bold',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            episodeTitle,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .inverseSurface,
-                              fontFamily: 'Poppins-SemiBold',
-                              fontSize: 12,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Container(
-                          width: 45,
-                          height: 35,
-                          decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(12),
-                                  bottomRight: Radius.circular(12))),
-                          child: Center(
-                            child: Text(
-                              episodeNumber?.toString() ?? index.toString(),
-                              style: const TextStyle(
-                                  fontFamily: 'Poppins-Bold',
-                                  color: Colors.black),
-                            ),
-                          ),
-                        )),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        episodeTitle,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.inverseSurface,
+                          fontFamily: 'Poppins-Bold',
+                          fontSize: 14,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => widget.onEpisodeDownload(
+                          episode['episodeId'], episodeNumber.toString()),
+                      icon: Icon(Icons.download,
+                          color: Theme.of(context).colorScheme.inverseSurface),
+                    ),
                   ],
                 ),
+              ),
+            ),
+          );
+        }
+
+        if (widget.layoutIndex == 1) {
+          return Opacity(
+            opacity: episodeNumber < widget.progress ? 0.7 : 1,
+            child: Container(
+              width: double.maxFinite,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: (widget.episodeImages != null &&
+                            widget.episodeImages!.length > index
+                        ? widget.episodeImages![episodeNumber - 1]['image'] ??
+                            widget.coverImage
+                        : widget.coverImage),
+                    fit: BoxFit.cover,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.only(top: 15, left: 10, right: 5),
+                    decoration: BoxDecoration(
+                      color: isFiller
+                          ? Colors.lightGreen.shade700.withOpacity(0.8)
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainer
+                              .withOpacity(0.6),
+                    ),
+                    child: Text(
+                      episodeTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontStyle: FontStyle.italic,
+                          fontFamily: 'Poppins-SemiBold'),
+                    ),
+                  ),
+                  Positioned(
+                      bottom: 5,
+                      right: 20,
+                      child: Text(episodeNumber.toString(),
+                          style: TextStyle(
+                              fontFamily: "Poppins-Bold",
+                              fontSize: 24,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .inverseSurface
+                                  .withOpacity(0.8)))),
+                  Positioned(
+                      bottom: 7,
+                      left: 10,
+                      child: InkWell(
+                          onTap: () => widget.onEpisodeDownload(
+                              episode['episodeId'], episodeNumber.toString()),
+                          child: Icon(Icons.download,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .inverseSurface
+                                  .withOpacity(0.8))))
+                ],
               ),
             ),
           );

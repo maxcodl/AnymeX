@@ -1,3 +1,5 @@
+// ignore_for_file: must_be_immutable
+
 import 'dart:math';
 
 import 'package:aurora/components/helper/scroll_helper.dart';
@@ -14,6 +16,7 @@ class ReusableCarousel extends StatelessWidget {
   final String? tag;
   final bool? detailsPage;
   final bool? secondary;
+  final bool isManga;
 
   ReusableCarousel({
     super.key,
@@ -22,6 +25,7 @@ class ReusableCarousel extends StatelessWidget {
     this.tag,
     this.secondary = true,
     this.detailsPage = false,
+    this.isManga = false,
   });
 
   final ScrollDirectionHelper _scrollDirectionHelper = ScrollDirectionHelper();
@@ -40,47 +44,17 @@ class ReusableCarousel extends StatelessWidget {
             box.get('usingCompactCards', defaultValue: false);
         final bool usingSaikouCards =
             box.get('usingSaikouCards', defaultValue: true);
+        final double cardRoundness =
+            box.get('cardRoundness', defaultValue: 18.0);
 
-        return normalCard(
-            customScheme, context, usingCompactCards, usingSaikouCards);
+        return normalCard(customScheme, context, usingCompactCards,
+            usingSaikouCards, cardRoundness);
       },
     );
   }
 
-  Matrix4 getTransformMatrix(TransformableListItem item) {
-    const maxScale = 1;
-    const minScale = 0.9;
-    final viewportWidth = item.constraints.viewportMainAxisExtent;
-    final itemLeftEdge = item.offset.dx;
-    final itemRightEdge = item.offset.dx + item.size.width;
-
-    bool isScrollingRight =
-        _scrollDirectionHelper.isScrollingRight(item.offset);
-
-    double visiblePortion;
-    if (isScrollingRight) {
-      visiblePortion = (viewportWidth - itemLeftEdge) / item.size.width;
-    } else {
-      visiblePortion = (itemRightEdge) / item.size.width;
-    }
-
-    if ((isScrollingRight && itemLeftEdge < viewportWidth) ||
-        (!isScrollingRight && itemRightEdge > 0)) {
-      const scaleRange = maxScale - minScale;
-      final scale =
-          minScale + (scaleRange * visiblePortion).clamp(0.0, scaleRange);
-
-      return Matrix4.identity()
-        ..translate(item.size.width / 2, 0, 0)
-        ..scale(scale)
-        ..translate(-item.size.width / 2, 0, 0);
-    }
-
-    return Matrix4.identity();
-  }
-
   Column normalCard(ColorScheme customScheme, BuildContext context,
-      bool usingCompactCards, bool usingSaikouCards) {
+      bool usingCompactCards, bool usingSaikouCards, double cardRoundness) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -98,10 +72,10 @@ class ReusableCarousel extends StatelessWidget {
                 ),
               ),
               secondary!
-                  ? const Text(
-                      ' Animes',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ? Text(
+                      isManga ? ' Manga' : ' Animes',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500),
                     )
                   : const SizedBox.shrink(),
               const Expanded(child: SizedBox.shrink()),
@@ -133,8 +107,6 @@ class ReusableCarousel extends StatelessWidget {
                   '?';
               final random = Random().nextInt(100000);
               final tagg = '${itemData['id']}$tag$random';
-              const String proxyUrl =
-                  'https://goodproxy.goodproxy.workers.dev/fetch?url=';
               String extraData =
                   ((itemData['averageScore'] ?? 0) / 10)?.toString() ?? '??';
 
@@ -142,15 +114,27 @@ class ReusableCarousel extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 10.0),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/details',
-                      arguments: {
-                        'id': itemData['id'],
-                        'posterUrl': proxyUrl + posterUrl,
-                        'tag': tagg
-                      },
-                    );
+                    if (isManga) {
+                      Navigator.pushNamed(
+                        context,
+                        '/manga/details',
+                        arguments: {
+                          'id': itemData['id'],
+                          'posterUrl': posterUrl,
+                          'tag': tagg
+                        },
+                      );
+                    } else {
+                      Navigator.pushNamed(
+                        context,
+                        '/details',
+                        arguments: {
+                          'id': itemData['id'],
+                          'posterUrl': posterUrl,
+                          'tag': tagg
+                        },
+                      );
+                    }
                   },
                   child: Column(
                     children: [
@@ -162,9 +146,10 @@ class ReusableCarousel extends StatelessWidget {
                               child: Hero(
                                 tag: tagg,
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
+                                  borderRadius:
+                                      BorderRadius.circular(cardRoundness),
                                   child: CachedNetworkImage(
-                                    imageUrl: proxyUrl + posterUrl,
+                                    imageUrl: posterUrl,
                                     placeholder: (context, url) =>
                                         Shimmer.fromColors(
                                       baseColor: Colors.grey[900]!,
@@ -194,9 +179,11 @@ class ReusableCarousel extends StatelessWidget {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .surfaceContainer,
-                                        borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(18),
-                                            bottomRight: Radius.circular(16))),
+                                        borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(
+                                                cardRoundness - 5),
+                                            bottomRight: Radius.circular(
+                                                cardRoundness))),
                                     child: Row(
                                       children: [
                                         Icon(
@@ -230,9 +217,11 @@ class ReusableCarousel extends StatelessWidget {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .surfaceContainer,
-                                        borderRadius: const BorderRadius.only(
-                                            bottomLeft: Radius.circular(18),
-                                            topRight: Radius.circular(16))),
+                                        borderRadius: BorderRadius.only(
+                                            bottomLeft:
+                                                Radius.circular(cardRoundness),
+                                            topRight: Radius.circular(
+                                                cardRoundness - 5))),
                                     child: Text(
                                       extraData,
                                       style: TextStyle(
@@ -325,5 +314,37 @@ class ReusableCarousel extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Matrix4 getTransformMatrix(TransformableListItem item) {
+    const maxScale = 1;
+    const minScale = 0.9;
+    final viewportWidth = item.constraints.viewportMainAxisExtent;
+    final itemLeftEdge = item.offset.dx;
+    final itemRightEdge = item.offset.dx + item.size.width;
+
+    bool isScrollingRight =
+        _scrollDirectionHelper.isScrollingRight(item.offset);
+
+    double visiblePortion;
+    if (isScrollingRight) {
+      visiblePortion = (viewportWidth - itemLeftEdge) / item.size.width;
+    } else {
+      visiblePortion = (itemRightEdge) / item.size.width;
+    }
+
+    if ((isScrollingRight && itemLeftEdge < viewportWidth) ||
+        (!isScrollingRight && itemRightEdge > 0)) {
+      const scaleRange = maxScale - minScale;
+      final scale =
+          minScale + (scaleRange * visiblePortion).clamp(0.0, scaleRange);
+
+      return Matrix4.identity()
+        ..translate(item.size.width / 2, 0, 0)
+        ..scale(scale)
+        ..translate(-item.size.width / 2, 0, 0);
+    }
+
+    return Matrix4.identity();
   }
 }

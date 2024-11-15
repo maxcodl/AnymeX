@@ -2,6 +2,7 @@
 import 'dart:math';
 import 'package:aurora/components/helper/scroll_helper.dart';
 import 'package:aurora/pages/Anime/details_page.dart';
+import 'package:aurora/pages/Manga/details_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -101,8 +102,7 @@ class anilistCarousel extends StatelessWidget {
                   'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg';
               int random = Random().nextInt(100000);
               final tagg = '$random$index';
-              const String proxyUrl =
-                  'https://goodproxy.goodproxy.workers.dev/fetch?url=';
+              const String proxyUrl = '';
               dynamic extraData =
                   '${isManga ? 'Chapter' : 'Episode'} ${carouselData?[index]?['progress']?.toString() ?? '?'}';
               '1';
@@ -110,14 +110,25 @@ class anilistCarousel extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 10.0),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => DetailsPage(
-                                  id: itemData['id'],
-                                  tag: tagg,
-                                  posterUrl: proxyUrl + posterUrl,
-                                )));
+                    if (isManga) {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => MangaDetailsPage(
+                                    id: itemData['id'],
+                                    tag: tagg,
+                                    posterUrl: proxyUrl + posterUrl,
+                                  )));
+                    } else {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => DetailsPage(
+                                    id: itemData['id'],
+                                    tag: tagg,
+                                    posterUrl: proxyUrl + posterUrl,
+                                  )));
+                    }
                   },
                   child: Column(
                     children: [

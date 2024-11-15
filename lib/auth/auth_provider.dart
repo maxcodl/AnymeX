@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:aurora/components/anilistExclusive/mappingMethod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -19,8 +18,10 @@ class AniListProvider with ChangeNotifier {
     final token = await storage.read(key: 'auth_token');
     if (token != null) {
       await fetchUserProfile();
+      notifyListeners();
     }
     await fetchAnilistHomepage();
+    await fetchAnilistMangaPage();
     notifyListeners();
   }
 
@@ -122,6 +123,263 @@ class AniListProvider with ChangeNotifier {
       }
     } else {
       log('Failed to update anime list. Status code: ${response.statusCode}');
+      log('Response body: ${response.body}');
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateMangaList({
+    required int mangaId,
+    required int chapterProgress,
+    required double rating,
+    required String status,
+  }) async {
+    const String url = 'https://graphql.anilist.co';
+    final token = await storage.read(key: 'auth_token');
+    const String mutation = '''
+  mutation UpdateMediaList(\$mangaId: Int, \$progress: Int, \$score: Float, \$status: MediaListStatus) {
+    SaveMediaListEntry(mediaId: \$mangaId, progress: \$progress, score: \$score, status: \$status) {
+      id
+      status
+      progress
+      score
+    }
+  }
+  ''';
+
+    final Map<String, dynamic> variables = {
+      'mangaId': mangaId,
+      'progress': chapterProgress,
+      'score': rating,
+      'status': status.toUpperCase(),
+    };
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'query': mutation,
+        'variables': variables,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['errors'] != null) {
+        log('Error: ${data['errors']}');
+      } else {
+        log('Manga list updated successfully: ${data['data']}');
+        await fetchUserMangaList();
+      }
+    } else {
+      log('Failed to update manga list. Status code: ${response.statusCode}');
+      log('Response body: ${response.body}');
+    }
+    notifyListeners();
+  }
+
+  Future<void> deleteMangaFromList({
+    required int mangaId,
+  }) async {
+    const String url = 'https://graphql.anilist.co';
+    final token = await storage.read(key: 'auth_token');
+
+    const String query = '''
+  query GetMangaListEntryId(\$mediaId: Int) {
+    MediaList(mediaId: \$mediaId) {
+      id
+    }
+  }
+  ''';
+
+    final responseId = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'query': query,
+        'variables': {'mediaId': mangaId},
+      }),
+    );
+
+    if (responseId.statusCode != 200) {
+      log('Failed to fetch media list entry ID. Status code: ${responseId.statusCode}');
+      log('Response body: ${responseId.body}');
+      return;
+    }
+
+    final dataId = jsonDecode(responseId.body);
+    if (dataId['errors'] != null || dataId['data']['MediaList'] == null) {
+      log('Error fetching media list entry ID: ${dataId['errors']}');
+      return;
+    }
+
+    final int mediaListEntryId = dataId['data']['MediaList']['id'];
+
+    const String mutation = '''
+  mutation DeleteMangaEntry(\$id: Int) {
+    DeleteMediaListEntry(id: \$id) {
+      deleted
+    }
+  }
+  ''';
+
+    final responseDelete = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'query': mutation,
+        'variables': {'id': mediaListEntryId},
+      }),
+    );
+
+    if (responseDelete.statusCode == 200) {
+      final dataDelete = jsonDecode(responseDelete.body);
+      if (dataDelete['errors'] != null) {
+        log('Error deleting manga: ${dataDelete['errors']}');
+      } else {
+        log('Manga deleted successfully: ${dataDelete['data']}');
+        await fetchUserMangaList();
+      }
+    } else {
+      log('Failed to delete manga. Status code: ${responseDelete.statusCode}');
+      log('Response body: ${responseDelete.body}');
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> deleteAnimeFromList({
+    required int animeId,
+  }) async {
+    const String url = 'https://graphql.anilist.co';
+    final token = await storage.read(key: 'auth_token');
+
+    // Step 1: Fetch the media list entry ID
+    const String query = '''
+  query GetAnimeListEntryId(\$mediaId: Int) {
+    MediaList(mediaId: \$mediaId) {
+      id
+    }
+  }
+  ''';
+
+    final responseId = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'query': query,
+        'variables': {'mediaId': animeId},
+      }),
+    );
+
+    if (responseId.statusCode != 200) {
+      log('Failed to fetch media list entry ID. Status code: ${responseId.statusCode}');
+      log('Response body: ${responseId.body}');
+      return;
+    }
+
+    final dataId = jsonDecode(responseId.body);
+    if (dataId['errors'] != null || dataId['data']['MediaList'] == null) {
+      log('Error fetching media list entry ID: ${dataId['errors']}');
+      return;
+    }
+
+    final int mediaListEntryId = dataId['data']['MediaList']['id'];
+
+    // Step 2: Delete the entry using the media list entry ID
+    const String mutation = '''
+  mutation DeleteAnimeEntry(\$id: Int) {
+    DeleteMediaListEntry(id: \$id) {
+      deleted
+    }
+  }
+  ''';
+
+    final responseDelete = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'query': mutation,
+        'variables': {'id': mediaListEntryId},
+      }),
+    );
+
+    if (responseDelete.statusCode == 200) {
+      final dataDelete = jsonDecode(responseDelete.body);
+      if (dataDelete['errors'] != null) {
+        log('Error deleting anime: ${dataDelete['errors']}');
+      } else {
+        log('Anime deleted successfully: ${dataDelete['data']}');
+        await fetchUserAnimeList();
+      }
+    } else {
+      log('Failed to delete anime. Status code: ${responseDelete.statusCode}');
+      log('Response body: ${responseDelete.body}');
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> updateMangaProgress({
+    required int mangaId,
+    required int chapterProgress,
+    required String status,
+  }) async {
+    const String url = 'https://graphql.anilist.co';
+    final token = await storage.read(key: 'auth_token');
+    const String mutation = '''
+  mutation UpdateMediaList(\$mangaId: Int, \$progress: Int, \$status: MediaListStatus) {
+    SaveMediaListEntry(mediaId: \$mangaId, progress: \$progress, status: \$status) {
+      id
+      status
+      progress
+    }
+  }
+  ''';
+
+    final Map<String, dynamic> variables = {
+      'mangaId': mangaId,
+      'progress': chapterProgress,
+      'status': status.toUpperCase(),
+    };
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'query': mutation,
+        'variables': variables,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['errors'] != null) {
+        log('Error: ${data['errors']}');
+      } else {
+        log('Manga list updated successfully: ${data['data']}');
+        await fetchUserMangaList();
+      }
+    } else {
+      log('Failed to update manga list. Status code: ${response.statusCode}');
       log('Response body: ${response.body}');
     }
     notifyListeners();
@@ -378,6 +636,172 @@ class AniListProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> fetchAnilistMangaPage() async {
+    const String url = 'https://graphql.anilist.co';
+
+    const String query = '''
+  query CombinedMangaQueries(\$perPage: Int) {
+    # Popular Mangas (Page 1)
+    popularMangas: Page(page: 1, perPage: \$perPage) {
+      media(sort: POPULARITY_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        averageScore
+      }
+    }
+
+    # Popular Mangas (Page 2)
+    morePopularMangas: Page(page: 2, perPage: \$perPage) {
+      media(sort: POPULARITY_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        averageScore
+      }
+    }
+
+    # Latest Mangas (Page 1)
+    latestMangas: Page(page: 1, perPage: \$perPage) {
+      media(sort: START_DATE_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        averageScore
+      }
+    }
+
+    # Most Favorite Mangas (Page 1)
+    mostFavoriteMangas: Page(page: 1, perPage: \$perPage) {
+      media(sort: FAVOURITES_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        averageScore
+      }
+    }
+
+    # Top Rated Mangas (Page 1)
+    topRated: Page(page: 1, perPage: \$perPage) {
+      media(sort: SCORE_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        chapters
+        averageScore
+      }
+    }
+
+    # Top Updated Mangas (Page 1)
+    topUpdated: Page(page: 1, perPage: \$perPage) {
+      media(sort: UPDATED_AT_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        chapters
+        averageScore
+      }
+    }
+
+    # Top Ongoing Mangas (Page 1)
+    topOngoing: Page(page: 1, perPage: \$perPage) {
+      media(status: RELEASING, sort: SCORE_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+        }
+        chapters
+        averageScore
+      }
+    }
+
+    # Trending Mangas (Page 1)
+    trendingManga: Page(page: 1, perPage: \$perPage) {
+      media(sort: TRENDING_DESC, type: MANGA) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        description
+        bannerImage
+        coverImage {
+          large
+        }
+        averageScore
+      }
+    }
+  }
+''';
+
+    final headers = {
+      'Content-Type': 'application/json',
+    };
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: headers,
+      body: json.encode({
+        'query': query,
+        'variables': {
+          'perPage': 10,
+        },
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final dynamic responseData = json.decode(response.body);
+      _userData['mangaData'] = responseData['data'];
+      log(responseData['data'].toString());
+    } else {
+      throw Exception(
+          'Failed to load AniList manga data: ${response.statusCode}');
+    }
+    notifyListeners();
+  }
+
   Future<void> fetchUserAnimeList() async {
     _isLoading = true;
     notifyListeners();
@@ -555,7 +979,6 @@ class AniListProvider with ChangeNotifier {
               lists.expand((list) => list['entries'] as List<dynamic>).toList();
           log('User manga list fetched successfully');
           log('Fetched ${_userData['mangaList'].length} manga entries');
-          log(data['data']['MediaListCollection']['lists']);
         } else {
           log('Unexpected response structure: ${response.body}');
         }

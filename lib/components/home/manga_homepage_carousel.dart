@@ -1,10 +1,8 @@
-import 'dart:developer';
 import 'dart:math';
 import 'package:aurora/components/helper/scroll_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:infinite_carousel/infinite_carousel.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:transformable_list_view/transformable_list_view.dart';
 
@@ -66,8 +64,7 @@ class MangaHomepageCarousel extends StatelessWidget {
             title ?? '??',
             style: TextStyle(
               fontSize: 16,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins-SemiBold',
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -92,8 +89,8 @@ class MangaHomepageCarousel extends StatelessWidget {
               final random = Random().nextInt(100000);
               final tagg = '${itemData['id']}$tag$random';
               String? extraData =
-                  itemData['currentChapter']!.toString().length > 20
-                      ? itemData['currentChapter']?.toString().substring(0, 20)
+                  itemData['currentChapter']!.toString().length > 13
+                      ? itemData['currentChapter']?.toString().substring(0, 13)
                       : itemData['currentChapter']?.toString() ?? '??';
 
               return Padding(
@@ -104,7 +101,7 @@ class MangaHomepageCarousel extends StatelessWidget {
                       context,
                       '/manga/details',
                       arguments: {
-                        'id': itemData['mangaId'],
+                        'id': int.parse(itemData['anilistId']),
                         'posterUrl': posterUrl,
                         'tag': tagg
                       },
@@ -252,7 +249,7 @@ class MangaHomepageCarousel extends StatelessWidget {
                                           ? Colors.black
                                           : Colors.white,
                                   fontSize: usingSaikouCards ? 10 : 13,
-                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Poppins-SemiBold',
                                   shadows: [
                                     Shadow(
                                       blurRadius: 4,
@@ -291,7 +288,7 @@ class MangaHomepageCarousel extends StatelessWidget {
                                             ? Colors.black
                                             : Colors.white,
                                     fontSize: usingSaikouCards ? 10 : 13,
-                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Poppins-SemiBold',
                                   ),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,

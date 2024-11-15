@@ -1,29 +1,36 @@
-import 'dart:convert';
 import 'dart:developer';
+import 'package:aurora/auth/auth_provider.dart';
 import 'package:aurora/components/manga/toggle_bars.dart';
 import 'package:aurora/hiveData/appData/database.dart';
-import 'package:aurora/utils/scrapers/manga/mangakakalot/scraper_all.dart';
+import 'package:aurora/utils/sources/manga/handlers/manga_sources_handler.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 class ReadingPage extends StatefulWidget {
   final String id;
   final String mangaId;
   final String posterUrl;
+  final String currentSource;
+  final String anilistId;
+  final dynamic chapterList;
+  final String description;
   const ReadingPage(
       {super.key,
       required this.id,
       required this.mangaId,
-      required this.posterUrl});
+      required this.posterUrl,
+      required this.currentSource,
+      required this.anilistId,
+      required this.chapterList,
+      required this.description});
 
   @override
   State<ReadingPage> createState() => _ReadingPageState();
 }
 
 class _ReadingPageState extends State<ReadingPage> {
+  dynamic mangaData;
   List<dynamic>? chaptersList;
   List<dynamic>? chapterImages;
   String? currentChapter;
@@ -45,28 +52,35 @@ class _ReadingPageState extends State<ReadingPage> {
     fetchChapterData();
   }
 
-  String url = '${dotenv.get('PROXY_URL')}${dotenv.get('MANGA_URL')}api/manga/';
-
   Future<void> fetchChapterData() async {
     try {
       final provider = Provider.of<AppData>(context, listen: false);
-      final tempData = await fetchChapterDetails(
-          mangaId: widget.mangaId, chapterId: widget.id);
+      final tempData = await MangaSourceHandler().fetchChapterImages(
+          mangaId: widget.mangaId,
+          chapterId: widget.id,
+          sourceName: widget.currentSource);
       setState(() {
-        chaptersList = tempData['chapterListIds'];
-        chapterImages = tempData['images'];
-        currentChapter = tempData['currentChapter'];
-        mangaTitle = tempData['title'];
-        totalImages = tempData['totalImages'];
-        index = tempData['chapterListIds']
+        mangaData = tempData;
+        chaptersList = tempData?['chapterListIds'];
+        chapterImages = tempData?['images'];
+        currentChapter = tempData?['currentChapter'];
+        mangaTitle = tempData?['title'];
+        totalImages = tempData?['totalImages'];
+        index = tempData?['chapterListIds']
             ?.indexWhere((chapter) => chapter['name'] == currentChapter);
         isLoading = false;
       });
+      await _updateMangaProgress();
       provider.addReadManga(
-          mangaId: widget.mangaId,
-          mangaTitle: tempData['title'],
-          currentChapter: currentChapter.toString(),
-          mangaPosterImage: widget.posterUrl);
+        mangaId: widget.mangaId,
+        mangaTitle: tempData['title'],
+        currentChapter: currentChapter!. split(':').first.toString(),
+        mangaPosterImage: widget.posterUrl,
+        anilistMangaId: widget.anilistId,
+        currentSource: widget.currentSource,
+        chapterList: widget.chapterList,
+        description: widget.description,
+      );
     } catch (e) {
       log(e.toString());
       setState(() {
@@ -76,25 +90,42 @@ class _ReadingPageState extends State<ReadingPage> {
     }
   }
 
-  Future<void> fetchChapterImages() async {
+  Future<void> _updateMangaProgress() async {
+    final chapterNumber =
+        RegExp(r'\d+').firstMatch(currentChapter!)?.group(0) ?? '';
+    await AniListProvider().updateMangaProgress(
+        mangaId: int.parse(widget.anilistId),
+        chapterProgress: int.parse(chapterNumber),
+        status: 'CURRENT');
+  }
+
+  Future<void> fetchChapterImages(String chapterId) async {
     setState(() {
       isLoading = true;
     });
     try {
       final provider = Provider.of<AppData>(context, listen: false);
-      final tempData = await fetchChapterDetails(
-          mangaId: widget.mangaId, chapterId: chaptersList?[index!]['id']);
+      final tempData = await MangaSourceHandler().fetchChapterImages(
+          mangaId: widget.mangaId,
+          chapterId: chapterId,
+          sourceName: widget.currentSource);
       setState(() {
-        totalImages = tempData['totalImages'];
-        chapterImages = tempData['images'];
-        currentChapter = tempData['currentChapter'];
+        mangaData = tempData;
+        totalImages = tempData?['totalImages'];
+        chapterImages = tempData?['images'];
+        currentChapter = tempData?['currentChapter'];
         isLoading = false;
       });
       provider.addReadManga(
           mangaId: widget.mangaId,
           mangaTitle: mangaTitle!,
-          currentChapter: currentChapter.toString(),
-          mangaPosterImage: widget.posterUrl);
+          currentChapter: currentChapter!.split(':').first.toString(),
+          mangaPosterImage: widget.posterUrl,
+          anilistMangaId: (widget.anilistId),
+          currentSource: widget.currentSource,
+          chapterList: widget.chapterList,
+          description: widget.description);
+      _updateMangaProgress();
     } catch (e) {
       log(e.toString());
       setState(() {
@@ -106,17 +137,16 @@ class _ReadingPageState extends State<ReadingPage> {
 
   void handleChapter(String? direction) {
     if (direction == 'right') {
-      index = ((chaptersList?.indexWhere(
-                  (chapter) => chapter['name'] == currentChapter))! -
-              1)
-          .clamp(0, chaptersList!.length - 1);
+      if (mangaData['nextChapterId'] == '') {
+      } else {
+        fetchChapterImages(mangaData['nextChapterId']);
+      }
     } else {
-      index = ((chaptersList?.indexWhere(
-                  (chapter) => chapter['name'] == currentChapter))! +
-              1)
-          .clamp(0, chaptersList!.length - 1);
+      if (mangaData['prevChapterId'] == '') {
+      } else {
+        fetchChapterImages(mangaData['prevChapterId']);
+      }
     }
-    fetchChapterImages();
   }
 
   int _currentPage = 0;
@@ -124,6 +154,7 @@ class _ReadingPageState extends State<ReadingPage> {
   @override
   Widget build(BuildContext context) {
     return ToggleBar(
+      mangaData: mangaData,
       pageNumber: _getPageNumber(),
       title: isLoading ? 'Loading...' : mangaTitle ?? 'Unknown Title',
       chapter: isLoading ? 'Loading...' : currentChapter ?? 'Unknown Chapter',
@@ -160,6 +191,7 @@ class _ReadingPageState extends State<ReadingPage> {
           itemBuilder: (context, index) {
             return CachedNetworkImage(
               imageUrl: chapterImages![index]['image'],
+              httpHeaders: const {'Referer': 'https://chapmanganato.to/'},
               fit: BoxFit.cover,
               placeholder: (context, progress) => SizedBox(
                 height: MediaQuery.of(context).size.height,

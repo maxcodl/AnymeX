@@ -1,13 +1,8 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:aurora/auth/auth_provider.dart';
 import 'package:aurora/components/anilistExclusive/animeListCarousels.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconly/iconly.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -18,23 +13,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  File? _avatarImage;
-
-  // var box = Hive.box('login-data');
-  // final userInfo =
-  //     box.get('userInfo', defaultValue: ['Guest', 'Guest', 'null']);
-  // final userName = userInfo?[0] ?? 'Guest';
-  // final avatarImagePath = userInfo?[2] ?? 'null';
-  // final isLoggedIn = userName != 'Guest';
-  // final hasAvatarImage = avatarImagePath != 'null';
-  // final totalWatchedAnimes =
-  //     Provider.of<AppData>(context).watchedAnimes?.length.toString() ?? '00';
-  // final totalReadManga =
-  //     Provider.of<AppData>(context).readMangas?.length.toString() ?? '00';
-  // final hiveBox = Hive.box('app-data');
-  // final List<dynamic>? watchingAnimeList = hiveBox.get('currently-watching');
-  // final List<dynamic>? readingMangaList = hiveBox.get('currently-reading');
-
   dynamic filterData(dynamic animeList) {
     if (animeList != null) {
       return animeList.where((anime) => anime['status'] == 'CURRENT').toList();
@@ -65,7 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
           final following = isLoggedIn ? 0 : 0;
           final hasAvatarImage = avatarUrl != null;
           final animeList = filterData(anilistProvider.userData['animeList']);
-          // final mangaList = filterData(anilistProvider.userData['mangaList']);
+          final mangaList = filterData(anilistProvider.userData['mangaList']);
 
           return ListView(
             children: [
@@ -287,13 +265,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         carouselData: animeList,
                         tag: 'currently-watching',
                       ),
-                      // anilistCarousel(
-                      //   title: 'Currently Reading',
-                      //   carouselData: mangaList,
-                      //   tag: 'currently-reading',
-                      //   rawData: rawDataManga,
-                      //   isManga: true,
-                      // ),
+                      anilistCarousel(
+                        title: 'Currently Reading',
+                        carouselData: mangaList,
+                        tag: 'currently-reading',
+                        isManga: true,
+                      ),
                     ],
                   ),
                 ],
@@ -303,76 +280,6 @@ class _ProfilePageState extends State<ProfilePage> {
         },
       ),
     );
-  }
-
-  void _showUsernameDialog(BuildContext context) {
-    final TextEditingController usernameController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-          content: TextFormField(
-            controller: usernameController,
-            decoration: InputDecoration(
-                hintText: 'Username',
-                fillColor: Theme.of(context).colorScheme.surfaceContainer),
-          ),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                              width: 2,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryFixedVariant)),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(
-                  width: 10,
-                ),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    onPressed: () {
-                      _submitUsername(usernameController.text);
-                      Navigator.of(context).pop(); // Close the dialog
-                    },
-                    child: const Text('Submit'),
-                  ),
-                ),
-              ],
-            )
-          ],
-        );
-      },
-    );
-  }
-
-  void _submitUsername(String newUsername) {
-    if (newUsername.isNotEmpty) {
-      var box = Hive.box('login-data');
-      var userInfo =
-          box.get('userInfo', defaultValue: ['Guest', 'Guest', 'null']);
-      userInfo[0] = newUsername;
-      box.put('userInfo', userInfo);
-      setState(() {});
-    }
   }
 
   Widget _buildStatContainer({
@@ -401,7 +308,7 @@ class _ProfilePageState extends State<ProfilePage> {
             value,
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins-SemiBold',
             ),
             textAlign: TextAlign.center,
           ),
@@ -413,29 +320,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showAvatarSelector(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return AvatarModal(
-          onAvatarSelected: (File avatar) {
-            setState(() {
-              _avatarImage = avatar;
-            });
-            Hive.box('login-data').put('userInfo', [
-              Hive.box('login-data').get('userInfo')[0],
-              Hive.box('login-data').get('userInfo')[1],
-              _avatarImage?.path ?? 'null',
-            ]);
-          },
-        );
-      },
     );
   }
 }
@@ -466,151 +350,6 @@ class StatsRow extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class AvatarModal extends StatefulWidget {
-  final Function(File) onAvatarSelected;
-
-  const AvatarModal({required this.onAvatarSelected, super.key});
-
-  @override
-  State<AvatarModal> createState() => _AvatarModalState();
-}
-
-class _AvatarModalState extends State<AvatarModal> {
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = path.basename(pickedFile.path);
-      final savedImage =
-          await File(pickedFile.path).copy('${directory.path}/$fileName');
-
-      widget.onAvatarSelected(savedImage);
-      Navigator.pop(context);
-    }
-  }
-
-  Future<void> _selectAvatar(String assetPath) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final fileName = path.basename(assetPath);
-    final byteData = await DefaultAssetBundle.of(context).load(assetPath);
-    final file = File('${directory.path}/$fileName');
-    await file.writeAsBytes(byteData.buffer.asUint8List());
-
-    widget.onAvatarSelected(file);
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 350,
-      width: MediaQuery.of(context).size.width,
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          const Text(
-            'Choose your avatar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 30),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              margin: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Theme.of(context).colorScheme.secondaryContainer,
-              ),
-              child: GridView(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                ),
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      onPressed: _pickImage,
-                      icon: const Icon(IconlyBold.image, size: 50),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () =>
-                        _selectAvatar('assets/images/avatars/avatar1.png'),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/avatars/avatar1.png',
-                        fit: BoxFit.cover,
-                        height: 50,
-                        width: 50,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () =>
-                        _selectAvatar('assets/images/avatars/avatar2.png'),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/avatars/avatar2.png',
-                        height: 50,
-                        width: 50,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () =>
-                        _selectAvatar('assets/images/avatars/avatar3.png'),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/avatars/avatar3.png',
-                        height: 50,
-                        width: 50,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () =>
-                        _selectAvatar('assets/images/avatars/avatar4.png'),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/avatars/avatar4.png',
-                        height: 50,
-                        width: 50,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () =>
-                        _selectAvatar('assets/images/avatars/avatar5.png'),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/avatars/avatar5.png',
-                        height: 50,
-                        width: 50,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),

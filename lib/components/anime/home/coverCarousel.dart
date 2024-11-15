@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:aurora/components/common/IconWithLabel.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shimmer/shimmer.dart';
@@ -14,8 +13,10 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 class Covercarousel extends StatefulWidget {
   final List<dynamic>? animeData;
   final String? title;
+  final bool isManga;
 
-  const Covercarousel({super.key, this.animeData, this.title});
+  const Covercarousel(
+      {super.key, this.animeData, this.title, this.isManga = false});
 
   @override
   _CovercarouselState createState() => _CovercarouselState();
@@ -31,9 +32,7 @@ class _CovercarouselState extends State<Covercarousel> {
     if (widget.animeData == null) {
       return const Center(
         heightFactor: 300,
-        child: CupertinoActivityIndicator(
-          radius: 50,
-        ),
+        child: CircularProgressIndicator(),
       );
     }
 
@@ -43,14 +42,14 @@ class _CovercarouselState extends State<Covercarousel> {
           itemCount: widget.animeData!.length,
           itemBuilder: (context, index, realIndex) {
             final anime = widget.animeData![index];
-            final String posterUrl = anime?['bannerImage'] ?? '??';
+            final String posterUrl =
+                anime?['bannerImage'] ?? anime?['coverImage']['large'];
             final title = anime?['title']?['english'] ??
                 anime?['title']?['romaji'] ??
                 '??';
             final randNum = Random().nextInt(100000);
             final tag = '$randNum$index';
-            const String proxyUrl =
-                'https://goodproxy.goodproxy.workers.dev/fetch?url=';
+            const String proxyUrl = '';
 
             return Stack(
               children: [
@@ -58,15 +57,27 @@ class _CovercarouselState extends State<Covercarousel> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/details',
-                          arguments: {
-                            'id': anime['id'],
-                            'posterUrl': proxyUrl + posterUrl,
-                            "tag": tag
-                          },
-                        );
+                        if (widget.isManga) {
+                          Navigator.pushNamed(
+                            context,
+                            '/manga/details',
+                            arguments: {
+                              'id': anime['id'],
+                              'posterUrl': proxyUrl + posterUrl,
+                              "tag": tag
+                            },
+                          );
+                        } else {
+                          Navigator.pushNamed(
+                            context,
+                            '/details',
+                            arguments: {
+                              'id': anime['id'],
+                              'posterUrl': proxyUrl + posterUrl,
+                              "tag": tag
+                            },
+                          );
+                        }
                       },
                       child: Container(
                         height: 170,
@@ -79,7 +90,7 @@ class _CovercarouselState extends State<Covercarousel> {
                               imageUrl: proxyUrl + posterUrl,
                               fit: BoxFit.cover,
                               width: double.infinity,
-                              alignment: Alignment.center,
+                              alignment: Alignment.topCenter,
                               placeholder: (context, url) => Shimmer.fromColors(
                                 baseColor: Colors.grey[900]!,
                                 highlightColor: Colors.grey[700]!,
