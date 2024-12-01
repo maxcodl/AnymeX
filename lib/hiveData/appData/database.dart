@@ -130,7 +130,7 @@ class AppData extends ChangeNotifier {
       'mangaDescription': description
     };
 
-    readMangas!.removeWhere((manga) => manga['mangaId'] == mangaId);
+    readMangas!.removeWhere((manga) => manga['anilistId'] == anilistMangaId);
     readMangas!.add(newManga);
 
     var box = Hive.box('app-data');
@@ -147,7 +147,7 @@ class AppData extends ChangeNotifier {
 
   dynamic getAnimeById(String animeId) {
     return watchedAnimes?.firstWhere(
-      (anime) => anime['animeId'] == animeId,
+      (anime) => anime['anilistId'] == animeId,
       orElse: () => {},
     );
   }

@@ -1,19 +1,27 @@
-import 'package:aurora/components/anilistExclusive/animeListCarousels.dart';
-import 'package:aurora/components/anime/details/image_button.dart';
-import 'package:aurora/components/novel/continue_noveling.dart';
-import 'package:aurora/fallbackData/anilist_homepage_data.dart';
-import 'package:aurora/fallbackData/anilist_manga_homepage.dart';
-import 'package:aurora/pages/MyList/mylist_page.dart';
-import 'package:aurora/pages/user/anilist_pages/anime_list.dart';
-import 'package:aurora/pages/user/anilist_pages/manga_list.dart';
-import 'package:aurora/hiveData/themeData/theme_provider.dart';
+import 'package:anymex/components/android/anilistExclusive/animeListCarousels.dart';
+import 'package:anymex/components/android/anime/details/image_button.dart';
+import 'package:anymex/components/android/home/homepage_carousel.dart';
+import 'package:anymex/components/android/novel/continue_noveling.dart';
+import 'package:anymex/components/desktop/animeListCarousels.dart';
+import 'package:anymex/components/desktop/hive/anime_watching.dart';
+import 'package:anymex/components/desktop/hive/manga_continue.dart';
+import 'package:anymex/components/desktop/hive/novel_continue.dart';
+import 'package:anymex/components/desktop/horizontal_list.dart';
+import 'package:anymex/components/platform_builder.dart';
+import 'package:anymex/fallbackData/anilist_homepage_data.dart';
+import 'package:anymex/fallbackData/anilist_manga_homepage.dart';
+import 'package:anymex/pages/Android/MyList/mylist_page.dart';
+import 'package:anymex/pages/Android/user/anilist_pages/anime_list.dart';
+import 'package:anymex/pages/Android/user/anilist_pages/manga_list.dart';
+import 'package:anymex/hiveData/themeData/theme_provider.dart';
+import 'package:anymex/utils/update_notifier.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_sliding_segmented_control/custom_sliding_segmented_control.dart';
 import 'package:flutter/material.dart';
-import 'package:aurora/auth/auth_provider.dart';
-import 'package:aurora/components/common/settings_modal.dart';
-import 'package:aurora/components/common/reusable_carousel.dart';
-import 'package:aurora/components/home/manga_homepage_carousel.dart';
+import 'package:anymex/auth/auth_provider.dart';
+import 'package:anymex/components/android/common/settings_modal.dart';
+import 'package:anymex/components/android/common/reusable_carousel.dart';
+import 'package:anymex/components/android/home/manga_homepage_carousel.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/arcticons.dart';
@@ -49,6 +57,9 @@ class _HomePageState extends State<HomePage> {
         _showWelcomeDialog(context);
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForUpdate(context);
+    });
   }
 
   @override
@@ -66,15 +77,22 @@ class _HomePageState extends State<HomePage> {
                     .toList() ??
                 [])
             : [];
+        final mangaList = isLoggedIn &&
+                anilistProvider.userData != null &&
+                anilistProvider.userData.containsKey('currentlyReading')
+            ? (anilistProvider.userData['currentlyReading'].reversed.toList() ??
+                [])
+            : [];
+
         return ValueListenableBuilder(
           valueListenable: Hive.box('app-data').listenable(),
           builder: (context, Box appBox, _) {
-            // final rawDataManga = anilistProvider.userData['mangaList'];
-            final mangaList = anilistProvider.userData?['mangaList'];
             final dynamic readingMangaList =
                 appBox.get('currently-reading')?.reversed.toList();
             final dynamic readingNovelList =
                 appBox.get('currently-noveling')?.reversed.toList();
+            final dynamic currentWatching =
+                appBox.get('currently-watching')?.reversed.toList();
 
             return Scaffold(
               backgroundColor: Theme.of(context).colorScheme.surface,
@@ -157,7 +175,7 @@ class _HomePageState extends State<HomePage> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Text(
-                              'Find your favorite anime or manga, manhwa or whatever you like!',
+                              'Find your favourite anime or manga, manhwa or whatever you like!',
                               style: TextStyle(
                                 color: Theme.of(context)
                                     .colorScheme
@@ -174,102 +192,121 @@ class _HomePageState extends State<HomePage> {
                   Column(
                     children: [
                       if (isLoggedIn)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              ImageButton(
-                                width:
-                                    MediaQuery.of(context).size.width / 2 - 40,
-                                buttonText: 'ANIME LIST',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => AnimeList(),
-                                    ),
-                                  );
-                                  Provider.of<AniListProvider>(context,
-                                          listen: false)
-                                      .fetchUserAnimeList();
-                                },
-                                backgroundImage:
-                                    'https://s4.anilist.co/file/anilistcdn/media/anime/banner/110277-iuGn6F5bK1U1.jpg',
-                              ),
-                              ImageButton(
-                                width:
-                                    MediaQuery.of(context).size.width / 2 - 40,
-                                buttonText: 'MANGA LIST',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => AnilistMangaList(),
-                                    ),
-                                  );
-                                  Provider.of<AniListProvider>(context,
-                                          listen: false)
-                                      .fetchUserMangaList();
-                                },
-                                backgroundImage:
-                                    'https://s4.anilist.co/file/anilistcdn/media/manga/banner/30002-3TuoSMl20fUX.jpg',
-                              ),
-                            ],
+                        PlatformBuilder(
+                          androidBuilder: Padding(
+                            padding: const EdgeInsets.only(top: 20.0),
+                            child: _buildAndroidButtons(context),
                           ),
+                          desktopBuilder: _buildDesktopButtons(context),
                         ),
                       const SizedBox(height: 20),
-                      ImageButton(
-                          width: 200,
-                          buttonText: "FAVOURITES",
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const MyList()));
-                          },
-                          backgroundImage:
-                              'https://images3.alphacoders.com/128/thumb-1920-1283303.png'),
+                      PlatformBuilder(
+                          androidBuilder: ImageButton(
+                              width: 200,
+                              buttonText: "FAVOURITES",
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => const MyList()));
+                              },
+                              backgroundImage:
+                                  'https://images3.alphacoders.com/128/thumb-1920-1283303.png'),
+                          desktopBuilder: const SizedBox.shrink()),
                       const SizedBox(height: 20),
-                      if (isLoggedIn)
-                        anilistCarousel(
-                          title: 'Currently Watching',
-                          carouselData: animeList,
-                          tag: 'currently-watching',
+                      if (isLoggedIn) ...[
+                        PlatformBuilder(
+                            androidBuilder: anilistCarousel(
+                              title: 'Currently Watching',
+                              carouselData: animeList,
+                              tag: 'currently-watching',
+                            ),
+                            desktopBuilder: DesktopAnilistCarousel(
+                              title: 'Currently Watching',
+                              carouselData: animeList,
+                              tag: 'currently-watching',
+                            )),
+                        PlatformBuilder(
+                            androidBuilder: anilistCarousel(
+                              title: 'Currently Reading',
+                              carouselData: mangaList,
+                              tag: 'currently-reading',
+                              isManga: true,
+                            ),
+                            desktopBuilder: DesktopAnilistCarousel(
+                              title: 'Currently Reading',
+                              carouselData: mangaList,
+                              tag: 'currently-reading',
+                              isManga: true,
+                            )),
+                      ] else ...[
+                        PlatformBuilder(
+                            androidBuilder: HomepageCarousel(
+                              title: 'Currently Watching',
+                              carouselData: currentWatching,
+                              tag: 'home-page',
+                            ),
+                            desktopBuilder: DesktopAnimeContinue(
+                              title: 'Currently Watching',
+                              carouselData: currentWatching,
+                              tag: 'home-page',
+                            )),
+                        PlatformBuilder(
+                            androidBuilder: MangaHomepageCarousel(
+                              title: 'Currently Reading',
+                              carouselData: readingMangaList,
+                              tag: 'home-page',
+                            ),
+                            desktopBuilder: DesktopMangaContinue(
+                              title: 'Currently Reading',
+                              carouselData: readingMangaList,
+                              tag: 'home-page',
+                            )),
+                      ],
+                      PlatformBuilder(
+                          androidBuilder: ContinueNoveling(
+                            carouselData: readingNovelList,
+                            title: 'Continue Novelling',
+                            tag: 'Novel-Carousel',
+                          ),
+                          desktopBuilder: DesktopNovelContinue(
+                            carouselData: readingNovelList,
+                            title: 'Continue Novelling',
+                            tag: 'Novel-Carousel',
+                          )),
+                      PlatformBuilder(
+                        androidBuilder: ReusableCarousel(
+                          title: 'Recommended',
+                          carouselData: fallbackAnilistData['data']
+                              ['popularAnimes']['media'],
+                          tag: 'home-page-recommended',
+                          secondary: true,
                         ),
-                      if(isLoggedIn)
-                      anilistCarousel(
-                        title: 'Currently Reading',
-                        carouselData: mangaList,
-                        tag: 'currently-reading',
-                        isManga: true,
-                      ),
-                      if (!isLoggedIn)
-                        MangaHomepageCarousel(
-                          title: 'Currently Reading',
-                          carouselData: readingMangaList,
-                          tag: 'home-page',
+                        desktopBuilder: HorizontalList(
+                          title: 'Recommended',
+                          carouselData: fallbackAnilistData['data']
+                              ['popularAnimes']['media'],
+                          tag: 'home-page-recommended',
+                          secondary: true,
                         ),
-                      ContinueNoveling(
-                        carouselData: readingNovelList,
-                        title: 'Continue Novelling',
-                        tag: 'Novel-Carousel',
                       ),
-                      ReusableCarousel(
-                        title: 'Recommended',
-                        carouselData: fallbackAnilistData['data']
-                            ['popularAnimes']['media'],
-                        tag: 'home-page-recommended',
-                        secondary: true,
-                      ),
-                      ReusableCarousel(
-                        title: 'Recommended',
-                        carouselData: fallbackMangaData['data']['popularMangas']
-                            ['media'],
-                        tag: 'home-page-recommended',
-                        secondary: true,
-                        isManga: true,
-                      ),
+                      PlatformBuilder(
+                          androidBuilder: ReusableCarousel(
+                            title: 'Recommended',
+                            carouselData: fallbackMangaData['data']
+                                ['popularMangas']['media'],
+                            tag: 'home-page-recommended',
+                            secondary: true,
+                            isManga: true,
+                          ),
+                          desktopBuilder: HorizontalList(
+                            title: 'Recommended',
+                            carouselData: fallbackMangaData['data']
+                                ['popularMangas']['media'],
+                            tag: 'home-page-recommended',
+                            secondary: true,
+                            isManga: true,
+                          )),
                     ],
                   ),
                 ],
@@ -278,6 +315,87 @@ class _HomePageState extends State<HomePage> {
           },
         );
       },
+    );
+  }
+
+  Row _buildAndroidButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ImageButton(
+          width: MediaQuery.of(context).size.width / 2 - 40,
+          buttonText: 'ANIME LIST',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnimeList(),
+              ),
+            );
+            Provider.of<AniListProvider>(context, listen: false)
+                .fetchUserAnimeList();
+          },
+          backgroundImage:
+              'https://s4.anilist.co/file/anilistcdn/media/anime/banner/110277-iuGn6F5bK1U1.jpg',
+        ),
+        ImageButton(
+          width: MediaQuery.of(context).size.width / 2 - 40,
+          buttonText: 'MANGA LIST',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnilistMangaList(),
+              ),
+            );
+            Provider.of<AniListProvider>(context, listen: false)
+                .fetchUserMangaList();
+          },
+          backgroundImage:
+              'https://s4.anilist.co/file/anilistcdn/media/manga/banner/30002-3TuoSMl20fUX.jpg',
+        ),
+      ],
+    );
+  }
+
+  Row _buildDesktopButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ImageButton(
+          width: 250,
+          buttonText: 'ANIME LIST',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnimeList(),
+              ),
+            );
+            Provider.of<AniListProvider>(context, listen: false)
+                .fetchUserAnimeList();
+          },
+          backgroundImage:
+              'https://s4.anilist.co/file/anilistcdn/media/anime/banner/110277-iuGn6F5bK1U1.jpg',
+        ),
+        const SizedBox(width: 30),
+        ImageButton(
+          width: 250,
+          buttonText: 'MANGA LIST',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnilistMangaList(),
+              ),
+            );
+            Provider.of<AniListProvider>(context, listen: false)
+                .fetchUserMangaList();
+          },
+          backgroundImage:
+              'https://s4.anilist.co/file/anilistcdn/media/manga/banner/30002-3TuoSMl20fUX.jpg',
+        ),
+      ],
     );
   }
 

@@ -1,27 +1,22 @@
 import 'dart:developer';
 import 'dart:io';
-import 'package:aurora/auth/auth_provider.dart';
-import 'package:aurora/hiveData/appData/database.dart';
-import 'package:aurora/pages/Novel/home_page.dart';
-import 'package:aurora/pages/user/profile.dart';
-import 'package:aurora/hiveData/themeData/theme_provider.dart';
-import 'package:aurora/pages/Anime/home_page.dart';
-import 'package:aurora/pages/Manga/home_page.dart';
-import 'package:aurora/pages/home_page.dart';
-import 'package:aurora/utils/sources/anime/handler/sources_handler.dart';
+import 'dart:ui';
+import 'package:anymex/auth/auth_provider.dart';
+import 'package:anymex/components/platform_builder.dart';
+import 'package:anymex/hiveData/appData/database.dart';
+import 'package:anymex/pages/Android/Novel/home_page.dart';
+import 'package:anymex/hiveData/themeData/theme_provider.dart';
+import 'package:anymex/pages/Android/Anime/home_page.dart';
+import 'package:anymex/pages/Android/Manga/home_page.dart';
+import 'package:anymex/pages/home_page.dart';
+import 'package:anymex/utils/sources/unified_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:aurora/pages/Anime/details_page.dart';
-import 'package:aurora/pages/Anime/search_page.dart';
-import 'package:aurora/pages/Manga/details_page.dart';
-import 'package:aurora/pages/Manga/read_page.dart';
-import 'package:aurora/pages/Manga/search_page.dart';
 import 'package:crystal_navigation_bar/crystal_navigation_bar.dart';
 import 'package:iconly/iconly.dart';
 import 'package:iconsax/iconsax.dart';
@@ -42,25 +37,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AppData()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => SourcesHandler()),
+        ChangeNotifierProvider(create: (_) => UnifiedSourcesHandler()),
         ChangeNotifierProvider(
             create: (_) => AniListProvider()..tryAutoLogin()),
       ],
       child: const MainApp(),
     ),
   );
-}
-
-Future<void> requestNotificationPermission() async {
-  if (Platform.isAndroid) {
-    final os = await DeviceInfoPlugin().androidInfo;
-    if (os.version.sdkInt >= 33) {
-      final status = await Permission.notification.request();
-      if (!status.isGranted) {
-        print("Notification permission not granted");
-      }
-    }
-  }
 }
 
 class MainApp extends StatefulWidget {
@@ -70,18 +53,41 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
-class _MainAppState extends State<MainApp> {
+class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   int selectedIndex = 1;
 
   @override
   void initState() {
     super.initState();
-    _checkAndroidVersion();
+    if (Platform.isAndroid) {
+      _checkAndroidVersion();
+    }
     WidgetsFlutterBinding.ensureInitialized();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp]);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isLight =
+        PlatformDispatcher.instance.platformBrightness == Brightness.light;
+    if (Hive.box('login-data').get('Theme', defaultValue: 'dark') == 'system') {
+      if (isLight) {
+        themeProvider.setLightModeWithoutDB();
+      } else {
+        themeProvider.setDarkModeWithoutDB();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _checkAndroidVersion() async {
@@ -145,113 +151,92 @@ class _MainAppState extends State<MainApp> {
           valueListenable: box.listenable(),
           builder: (BuildContext context, Box<dynamic> value, Widget? child) {
             double tabBarSizeVertical = Hive.box('app-data')
-                .get('tabBarSizeVertical', defaultValue: 30.0);
+                .get('tabBarSizeVertical', defaultValue: 0.0);
             double tabBarSizeHorizontal = Hive.box('app-data')
                 .get('tabBarSizeHorizontal', defaultValue: 0.0);
-            return CrystalNavigationBar(
-              borderRadius: box.get('tabBarRoundness', defaultValue: 30.0),
-              currentIndex: _selectedIndex,
-              paddingR: const EdgeInsets.all(0),
-              marginR: EdgeInsets.symmetric(
-                horizontal: getProperSize(tabBarSizeHorizontal),
-                vertical: getProperSize(tabBarSizeVertical),
+            return PlatformBuilder(
+              androidBuilder: CrystalNavigationBar(
+                borderRadius: box.get('tabBarRoundness', defaultValue: 20.0),
+                currentIndex: _selectedIndex,
+                paddingR: const EdgeInsets.all(0),
+                height: 100 + tabBarSizeVertical,
+                unselectedItemColor: Colors.white,
+                backgroundColor: Colors.black.withOpacity(0.3),
+                onTap: _onItemTapped,
+                marginR: EdgeInsets.symmetric(
+                    horizontal: getProperSize(tabBarSizeHorizontal),
+                    vertical: 15),
+                items: [
+                  CrystalNavigationBarItem(
+                    icon: IconlyBold.home,
+                    unselectedIcon: IconlyLight.home,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                  CrystalNavigationBarItem(
+                    icon: Icons.movie_filter_rounded,
+                    unselectedIcon: Icons.movie_filter_outlined,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                  CrystalNavigationBarItem(
+                    icon: Iconsax.book,
+                    unselectedIcon: Iconsax.book,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                  CrystalNavigationBarItem(
+                    icon: HugeIcons.strokeRoundedBookOpen01,
+                    unselectedIcon: HugeIcons.strokeRoundedBookOpen01,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                ],
               ),
-              unselectedItemColor: Colors.white,
-              backgroundColor: Colors.black.withOpacity(0.3),
-              onTap: _onItemTapped,
-              items: [
-                CrystalNavigationBarItem(
-                  icon: IconlyBold.home,
-                  unselectedIcon: IconlyLight.home,
-                  selectedColor:
-                      themeProvider.selectedTheme.colorScheme.primary,
+              desktopBuilder: CrystalNavigationBar(
+                borderRadius: box.get('tabBarRoundness', defaultValue: 20.0),
+                currentIndex: _selectedIndex,
+                paddingR: const EdgeInsets.all(0),
+                height: 170 + tabBarSizeVertical,
+                unselectedItemColor: Colors.white,
+                backgroundColor: Colors.black.withOpacity(0.3),
+                onTap: _onItemTapped,
+                marginR: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.40 -
+                      tabBarSizeHorizontal,
+                  vertical: getProperSize(tabBarSizeVertical),
                 ),
-                CrystalNavigationBarItem(
-                  icon: Icons.movie_filter_rounded,
-                  unselectedIcon: Icons.movie_filter_outlined,
-                  selectedColor:
-                      themeProvider.selectedTheme.colorScheme.primary,
-                ),
-                CrystalNavigationBarItem(
-                  icon: Iconsax.book,
-                  unselectedIcon: Iconsax.book,
-                  selectedColor:
-                      themeProvider.selectedTheme.colorScheme.primary,
-                ),
-                CrystalNavigationBarItem(
-                  icon: HugeIcons.strokeRoundedBookOpen01,
-                  unselectedIcon: HugeIcons.strokeRoundedBookOpen01,
-                  selectedColor:
-                      themeProvider.selectedTheme.colorScheme.primary,
-                ),
-              ],
+                items: [
+                  CrystalNavigationBarItem(
+                    icon: IconlyBold.home,
+                    unselectedIcon: IconlyLight.home,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                  CrystalNavigationBarItem(
+                    icon: Icons.movie_filter_rounded,
+                    unselectedIcon: Icons.movie_filter_outlined,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                  CrystalNavigationBarItem(
+                    icon: Iconsax.book,
+                    unselectedIcon: Iconsax.book,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                  CrystalNavigationBarItem(
+                    icon: HugeIcons.strokeRoundedBookOpen01,
+                    unselectedIcon: HugeIcons.strokeRoundedBookOpen01,
+                    selectedColor:
+                        themeProvider.selectedTheme.colorScheme.primary,
+                  ),
+                ],
+              ),
             );
           },
         ),
       ),
-      onGenerateRoute: (settings) {
-        final args = settings.arguments as Map<String, dynamic>?;
-
-        switch (settings.name) {
-          case '/details':
-            final posterUrl = args?['posterUrl'] ?? '';
-            final id = args?['id'] ?? 0;
-            final tag = args?['tag'] ?? '';
-            return MaterialPageRoute(
-              builder: (context) => DetailsPage(
-                id: id,
-                posterUrl: posterUrl,
-                tag: tag,
-              ),
-            );
-          case '/anime/search':
-            final id = args?['term'] ?? '';
-            return MaterialPageRoute(
-              builder: (context) => SearchPage(searchTerm: id),
-            );
-          case '/manga/search':
-            final id = args?['term'] ?? '';
-            return MaterialPageRoute(
-              builder: (context) => MangaSearchPage(searchTerm: id),
-            );
-          case '/manga/details':
-            final posterUrl = args?['posterUrl'] ?? '';
-            final id = args?['id'] ?? '';
-            final tag = args?['tag'] ?? '';
-            return MaterialPageRoute(
-              builder: (context) =>
-                  MangaDetailsPage(id: id, posterUrl: posterUrl, tag: tag),
-            );
-          case '/manga/read':
-            final id = args?['id'] ?? '';
-            final mangaId = args?['mangaId'] ?? '';
-            final posterUrl = args?['posterUrl'] ?? '';
-            final currentSource = args?['currentSource'] ?? '';
-            final anilistId = args?['anilistId'] ?? '';
-            return MaterialPageRoute(
-              builder: (context) => ReadingPage(
-                id: id,
-                mangaId: mangaId,
-                posterUrl: posterUrl,
-                currentSource: currentSource,
-                anilistId: anilistId,
-                chapterList: null,
-                description: '',
-              ),
-            );
-          case '/profile':
-            return MaterialPageRoute(
-              builder: (context) => const ProfilePage(),
-            );
-          default:
-            return MaterialPageRoute(
-              builder: (context) => Scaffold(
-                body: Center(
-                    child: Text('No route defined for ${settings.name}')),
-              ),
-            );
-        }
-      },
     );
   }
 }

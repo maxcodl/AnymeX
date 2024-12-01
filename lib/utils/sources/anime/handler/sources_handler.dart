@@ -1,23 +1,33 @@
-import 'package:aurora/utils/sources/anime/extensions/aniwatch_api/api.dart';
-import 'package:aurora/utils/sources/anime/base/source_base.dart';
-import 'package:aurora/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
-import 'package:aurora/utils/sources/anime/extensions/gogoanime/gogoanime.dart';
-import 'package:aurora/utils/sources/manga/helper/jaro_helper.dart';
-import 'package:flutter/material.dart';
+import 'package:anymex/utils/sources/anime/extensions/animepahe/animepahe.dart';
+import 'package:anymex/utils/sources/anime/extensions/anivibe/anivibe.dart';
+import 'package:anymex/utils/sources/anime/extensions/aniwatch_api/api.dart';
+import 'package:anymex/utils/sources/anime/base/source_base.dart';
+import 'package:anymex/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
+import 'package:anymex/utils/sources/anime/extensions/gogoanime/gogoanime.dart';
+import 'package:anymex/utils/sources/anime/extensions/hiddenleaf/hiddenleaf.dart';
+import 'package:anymex/utils/sources/anime/extensions/yugenanime/yugenanime.dart';
+import 'package:anymex/utils/sources/manga/helper/jaro_helper.dart';
+import 'package:hive/hive.dart';
 
-class SourcesHandler extends ChangeNotifier {
+class SourcesHandler {
   final Map<String, SourceBase> animeSourcesMap = {
     'HiAnime (Scrapper)': HiAnime(),
     "HiAnime (API)": HiAnimeApi(),
     "GogoAnime": GogoAnime(),
+    "YugenAnime": YugenAnime(),
+    "AnimePahe": AnimePahe(),
+    "AniVibe": AniVibe(),
+    "HiddenLeaf": HiddenLeaf()
   };
 
   SourcesHandler() {
-    selectedSource = animeSourcesMap.entries.first.key;
+    sourceIndex = Hive.box('app-data').get('sourceIndex', defaultValue: 3);
+    selectedSource = animeSourcesMap.entries.elementAt(sourceIndex!).key;
     isMulti = animeSourcesMap[selectedSource]!.isMulti;
   }
   String selectedSource = '';
   bool isMulti = false;
+  int? sourceIndex;
 
   String getSelectedSource() {
     if (selectedSource == '') {
@@ -40,6 +50,9 @@ class SourcesHandler extends ChangeNotifier {
   void changeSelectedSource(String sourceName) {
     if (animeSourcesMap.entries.any((entry) => entry.key == sourceName)) {
       selectedSource = sourceName;
+      int index = animeSourcesMap.keys.toList().indexOf(sourceName);
+      Hive.box('app-data').put('sourceIndex', index);
+      sourceIndex = index;
     } else {
       selectedSource = animeSourcesMap.entries.first.key;
     }

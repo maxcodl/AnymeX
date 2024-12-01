@@ -1,7 +1,7 @@
 import 'dart:developer';
-import 'package:aurora/utils/sources/anime/base/source_base.dart';
-import 'package:aurora/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
-import 'package:aurora/utils/sources/anime/extractors/vidstream.dart';
+import 'package:anymex/utils/sources/anime/base/source_base.dart';
+import 'package:anymex/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
+import 'package:anymex/utils/sources/anime/extractors/vidstream.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html;
 
@@ -47,7 +47,6 @@ class GogoAnime implements SourceBase {
     // final streamwishLink = _getServerUrl("streamwish", serverLinks);
     // final vidhideLink = _getServerUrl("vidhide", serverLinks);
 
-    // Initialize the mapped data
     final Map<String, dynamic> mappedData = {
       "sources": [],
       "tracks": [],
@@ -69,7 +68,7 @@ class GogoAnime implements SourceBase {
   }
 
   @override
-  Future<dynamic> scrapeEpisodes(String aliasId) async {
+  Future<dynamic> scrapeEpisodes(String aliasId, {dynamic args}) async {
     final url =
         aliasId.startsWith("http") ? aliasId : '$_baseUrl/category/$aliasId';
     final response = await _httpGet(url);

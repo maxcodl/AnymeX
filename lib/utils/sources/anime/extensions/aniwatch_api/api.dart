@@ -2,8 +2,8 @@
 
 import 'dart:convert';
 import 'dart:developer';
-import 'package:aurora/utils/sources/anime/base/source_base.dart';
-import 'package:aurora/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
+import 'package:anymex/utils/sources/anime/base/source_base.dart';
+import 'package:anymex/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:html/dom.dart';
 import 'package:html/parser.dart';
@@ -71,7 +71,8 @@ class HiAnimeApi implements SourceBase {
   bool get isMulti => false;
 
   @override
-  Future<Map<String, dynamic>> scrapeEpisodes(String animeId) async {
+  Future<Map<String, dynamic>> scrapeEpisodes(String animeId,
+      {dynamic args}) async {
     const String srcBaseUrl = 'https://hianime.to';
     const String srcAjaxUrl = 'https://hianime.to/ajax/v2/episode/list';
     const String acceptHeader =

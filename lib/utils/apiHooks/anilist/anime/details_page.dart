@@ -78,6 +78,7 @@ Future<Map<String, dynamic>> fetchAnimeInfo(int animeId) async {
               coverImage {
                 large
               }
+              type
               averageScore
             }
           }
@@ -149,7 +150,10 @@ Future<Map<String, dynamic>> fetchAnimeInfo(int animeId) async {
 
       final updatedMedia = {
         'id': media['id'] as int? ?? '?',
-        'jname': media['title']?['romaji'] as String? ?? '?',
+        'jname': media['title']?['romaji'] ??
+            media['title']?['english'] ??
+            media['title']?['native'] ??
+            '?',
         'cover': media['bannerImage'] as String? ?? '',
         'name': media['title']?['english'] ??
             media['title']?['romaji'] ??

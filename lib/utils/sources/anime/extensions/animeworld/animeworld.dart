@@ -1,9 +1,7 @@
 // ignore_for_file: unused_local_variable, prefer_const_declarations
-
-import 'dart:convert';
 import 'dart:developer';
-import 'package:aurora/utils/sources/anime/base/source_base.dart';
-import 'package:aurora/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
+import 'package:anymex/utils/sources/anime/base/source_base.dart';
+import 'package:anymex/utils/sources/anime/extensions/aniwatch/aniwatch.dart';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart';
@@ -62,7 +60,7 @@ class AnimeWorld implements SourceBase {
   }
 
   @override
-  Future<dynamic> scrapeEpisodes(String url) async {
+  Future<dynamic> scrapeEpisodes(String url, {dynamic args}) async {
     final resp = await dio.get(url);
     if (resp.statusCode == 200) {
       final document = parse(resp.data);
