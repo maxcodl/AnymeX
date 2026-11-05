@@ -168,6 +168,9 @@ void main(List<String> args) async {
     await safeCall(() => dotenv.load(fileName: ".env"),
         errorMessage: 'Failed to load .env file');
 
+    await safeCall(() => AppTranslations.load(),
+        errorMessage: 'Failed to load translations');
+
     if (!Platform.isLinux) {
       await safeCall(
           () => Firebase.initializeApp(
