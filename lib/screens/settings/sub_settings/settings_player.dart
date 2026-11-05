@@ -2280,7 +2280,7 @@ class _SettingsPlayerState extends State<SettingsPlayer>
                                             icon: Icons.developer_board_rounded,
                                             title: 'Decoder Threads'.tr,
                                             subtitle:
-                                                '0 means automatic thread count',
+                                                '0 means automatic thread count'.tr,
                                             value: ((mpvCore['vdLavcThreads']
                                                         as num?) ??
                                                     4)

@@ -437,7 +437,7 @@ class _SettingsDonationState extends State<SettingsDonation> {
                   AnymeXTile(
                     icon: Icons.payment_rounded,
                     title: 'Donate via PayPal'.tr,
-                    subtitle: 'paypal.me/reyyuuki • Cards & PayPal Balance',
+                    subtitle: 'paypal.me/reyyuuki • Cards & PayPal Balance'.tr,
                     trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                     onTap: () => _openUrl(_paypalUrl),
                   ),
@@ -457,7 +457,7 @@ class _SettingsDonationState extends State<SettingsDonation> {
                   AnymeXTile(
                     icon: HugeIcons.strokeRoundedGithub,
                     title: 'Star on GitHub'.tr,
-                    subtitle: 'github.com/RyanYuuki/AnymeX • Show your love',
+                    subtitle: 'github.com/RyanYuuki/AnymeX • Show your love'.tr,
                     trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                     onTap: () => _openUrl(_githubUrl),
                   ),

@@ -2105,7 +2105,7 @@ class _FuturisticFilterSheetState extends State<FuturisticFilterSheet> {
                       ? _buildEmptyOptionsState(context,
                           title: 'No Services Available'.tr,
                           message:
-                              'Could not load streaming services from AniList API.\nThe service may be temporarily unavailable or rate-limited.')
+                              'Could not load streaming services from AniList API.\nThe service may be temporarily unavailable or rate-limited.'.tr)
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           physics: const BouncingScrollPhysics(),

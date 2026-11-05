@@ -288,7 +288,7 @@ class _LogoAnimationPreviewDialogState
                         setDialogState(() {});
                       },
                       decoration: InputDecoration(
-                        hintText: 'e.g. My Anime Logo',
+                        hintText: 'e.g. My Anime Logo'.tr,
                         errorText: errorText,
                         filled: true,
                         fillColor: dialogContext.colors.surfaceContainer,
@@ -517,7 +517,7 @@ class _LogoAnimationPreviewDialogState
                         setDialogState(() {});
                       },
                       decoration: InputDecoration(
-                        hintText: 'e.g. My Anime Logo',
+                        hintText: 'e.g. My Anime Logo'.tr,
                         errorText: errorText,
                         filled: true,
                         fillColor: dialogContext.colors.surfaceContainer,

@@ -645,7 +645,7 @@ class _SettingsAnilistApiState extends State<SettingsAnilistApi> {
             onChanged: (v) => _update((s) => s.airingNotifications = v)),
         AnymeXTile.toggle(
             icon: Icons.warning_amber_rounded,
-            title: '18+ Content',
+            title: '18+ Content'.tr,
             subtitle: 'Enable NSFW/adult entries in AniList content.'.tr,
             value: s.displayAdultContent,
             onChanged: (v) => _update((s) => s.displayAdultContent = v)),

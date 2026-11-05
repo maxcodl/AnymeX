@@ -771,7 +771,7 @@ class _CompatibilityResultPageState extends State<CompatibilityResultPage> {
   }) {
     final c = context.colors;
     final totalsCard =
-        detail.cards.where((c) => c.title == 'Totals').firstOrNull;
+        detail.cards.where((c) => c.title == 'Totals'.tr).firstOrNull;
     final rows = totalsCard?.rows ?? [];
 
     Widget body;
